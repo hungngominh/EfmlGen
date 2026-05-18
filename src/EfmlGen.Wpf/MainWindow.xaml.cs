@@ -25,6 +25,12 @@ public partial class MainWindow : Window
 
     private bool _suppressProfileFilter;
 
+    private static readonly string AppVersion =
+        System.Reflection.Assembly.GetExecutingAssembly()
+            .GetName().Version is { } v
+            ? $"v{v.Major}.{v.Minor}.{v.Build}"
+            : "";
+
     public MainWindow()
     {
         InitializeComponent();
@@ -38,7 +44,11 @@ public partial class MainWindow : Window
             new TextChangedEventHandler(ProfileCombo_TextChanged));
         ProfileCombo.DropDownClosed += ProfileCombo_DropDownClosed;
 
-        Loaded += (_, _) => LoadProfiles();
+        Loaded += (_, _) =>
+        {
+            LoadProfiles();
+            SetStatus("Ready", busy: false);
+        };
     }
 
     private void ProfileCombo_TextChanged(object sender, TextChangedEventArgs e)
@@ -601,7 +611,7 @@ public partial class MainWindow : Window
     {
         Dispatcher.Invoke(() =>
         {
-            StatusBarText.Text = $"EfmlGen Designer · {text}";
+            StatusBarText.Text = $"EfmlGen Designer {AppVersion} · {text}";
             StatusText.Text = text;
             ProgressBar.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
             ProgressBar.IsIndeterminate = busy;
