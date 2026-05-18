@@ -381,8 +381,8 @@
                                                  ToolTip="Baked into DbContext OnConfiguring. Auto-filled from Connection."/>
 
                                         <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
-                                            <CheckBox x:Name="SkipDataContextChk" Content="Skip DataContext.cs" Margin="0,0,20,0"/>
-                                            <CheckBox x:Name="SkipInfoChk" Content="Skip .info file" Margin="0,0,20,0"/>
+                                            <CheckBox x:Name="SkipDataContextChk" Content="Skip DataContext.cs" IsChecked="True" Margin="0,0,20,0"/>
+                                            <CheckBox x:Name="SkipInfoChk" Content="Skip .info file" IsChecked="True" Margin="0,0,20,0"/>
                                             <CheckBox x:Name="ForceChk" Content="Force (ignore collision errors)"/>
                                         </StackPanel>
 
