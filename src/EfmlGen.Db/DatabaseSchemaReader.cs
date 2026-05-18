@@ -42,8 +42,12 @@ public static class DatabaseSchemaReader
                 new Npgsql.EntityFrameworkCore.PostgreSQL.Design.Internal.NpgsqlDesignTimeServices()
                     .ConfigureDesignTimeServices(services);
                 break;
+            case DbProvider.SqlServer:
+                new Microsoft.EntityFrameworkCore.SqlServer.Design.Internal.SqlServerDesignTimeServices()
+                    .ConfigureDesignTimeServices(services);
+                break;
             default:
-                throw new System.NotSupportedException($"Provider {provider} not yet supported in MVP.");
+                throw new System.NotSupportedException($"Provider {provider} not yet supported.");
         }
 
         var sp = services.BuildServiceProvider();

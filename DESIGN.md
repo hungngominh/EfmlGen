@@ -653,14 +653,14 @@ Cho phép split nhiều `.efml` theo group table, mỗi group 1 namespace — ch
 
 ## 9. Implementation phases
 
-| Phase | Scope | Estimate |
+| Phase | Scope | Status |
 |---|---|---|
-| **P1 — efml ↔ cs** | `EfmlGen.Core` + `EfmlGen.Xml` + `EfmlGen.Templates` (Entity template only). Golden test với file mẫu user đã gửi. | 2-3 ngày |
-| **P2 — Context + Configuration** | 2 template còn lại + association → nav property | 2 ngày |
-| **P3 — DB → efml (Postgres)** | `EfmlGen.Db` cho Postgres, mapping rules, merge logic | 3 ngày |
-| **P4 — CLI** | `EfmlGen.Cli` với 3 verbs, packaging dotnet tool | 1 ngày |
-| **P5 — SQL Server** | Thêm provider thứ 2, share mapping rules | 1-2 ngày |
-| **P6 — Polish** | Config file, error messages, README, sample project | 1-2 ngày |
+| **P1 — efml ↔ cs** | `EfmlGen.Core` + `EfmlGen.Xml` + `EfmlGen.Templates` (Entity template only). Golden test với file mẫu user đã gửi. | ✅ Done |
+| **P2 — Context + Configuration** | 2 template còn lại + association → nav property | ✅ Done |
+| **P3 — DB → efml (Postgres)** | `EfmlGen.Db` cho Postgres, mapping rules, merge logic | ✅ Done |
+| **P4 — CLI** | `EfmlGen.Cli` với 3 verbs, packaging dotnet tool | ✅ Done |
+| **P5 — SQL Server** | Thêm provider thứ 2, share mapping rules (`SqlServerTypeMap`, dispatch trong `DatabaseSchemaReader` + `DatabaseModelMapper`, CLI + WPF chấp nhận `SqlServer`) | ✅ Done |
+| **P6 — Polish** | Config file, error messages, README, sample project | In progress |
 
 **Total MVP: ~2 tuần** (1 dev full-time).
 

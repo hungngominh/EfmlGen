@@ -26,7 +26,8 @@ public static class DiagramLayout
     public static IReadOnlyDictionary<Guid, (int X, int Y)> ComputeGrid(
         EfmlModel model, int columns = 4, int hGap = 50, int vGap = 50)
     {
-        if (columns < 1) throw new ArgumentOutOfRangeException(nameof(columns));
+        if (columns < 1)
+            throw new ArgumentOutOfRangeException(nameof(columns), columns, "Must be >= 1.");
 
         var result = new Dictionary<Guid, (int X, int Y)>(model.Classes.Count);
 

@@ -48,8 +48,9 @@ public static class ProfileStore
             var json = File.ReadAllText(FilePath);
             return JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"[warn] Could not load profiles from {FilePath} ({ex.GetType().Name}: {ex.Message}). Starting with empty profile list — your existing file will be overwritten on next Save.");
             return new AppSettings();
         }
     }
@@ -78,8 +79,9 @@ public static class ProfileStore
             var plain = ProtectedData.Unprotect(encrypted, null, DataProtectionScope.CurrentUser);
             return Encoding.UTF8.GetString(plain);
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"[warn] Could not decrypt saved password ({ex.GetType().Name}: {ex.Message}). DPAPI ties encryption to the current Windows user on the current machine — passwords don't transfer across users/machines. Re-enter the password and Save Profile.");
             return "";
         }
     }

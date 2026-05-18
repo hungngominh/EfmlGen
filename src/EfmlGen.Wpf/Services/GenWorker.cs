@@ -57,6 +57,7 @@ public static class GenWorker
             Name = modelName,
             Namespace = @namespace,
             ContextNamespace = contextNamespace,
+            Provider = provider,
             ForceDateTime = forceDateTime
         });
 
@@ -104,14 +105,18 @@ public static class GenWorker
         DateTime? timestamp)
     {
         if (!File.Exists(efmlPath))
-            throw new FileNotFoundException($"efml file not found: {efmlPath}");
+            throw new FileNotFoundException($".efml file not found: {efmlPath}");
         Directory.CreateDirectory(outDir);
 
         var model = EfmlReader.ReadFile(efmlPath);
         var warnings = CollisionDetector.Validate(model);
         var hasError = warnings.Any(w => w.Severity == CollisionDetector.Severity.Error);
         if (hasError && !force)
-            throw new InvalidOperationException("Collision detector found errors. Tick 'Force' to generate anyway.");
+        {
+            var errCount = warnings.Count(w => w.Severity == CollisionDetector.Severity.Error);
+            throw new InvalidOperationException(
+                $"Collision detector found {errCount} error(s). See log above for details. Tick 'Force' to generate anyway (not recommended).");
+        }
 
         var ctx = new GenerationContext
         {

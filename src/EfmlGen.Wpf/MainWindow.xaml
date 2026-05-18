@@ -164,9 +164,10 @@
                                             <TextBox x:Name="ProfileNameBox"/>
 
                                             <TextBlock Text="Provider" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
-                                            <ComboBox x:Name="ProviderCombo">
+                                            <ComboBox x:Name="ProviderCombo"
+                                                      SelectionChanged="ProviderCombo_SelectionChanged">
                                                 <ComboBoxItem Content="Postgres" IsSelected="True"/>
-                                                <ComboBoxItem Content="SqlServer" IsEnabled="False"/>
+                                                <ComboBoxItem Content="SqlServer"/>
                                             </ComboBox>
 
                                             <Grid Margin="0,16,0,0">

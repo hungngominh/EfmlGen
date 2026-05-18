@@ -55,7 +55,10 @@ public static class TypeMap
     };
 
     public static EfType Parse(string s) =>
-        _fromString.TryGetValue(s, out var t) ? t : throw new ArgumentException($"Unknown efml type: {s}");
+        _fromString.TryGetValue(s, out var t)
+            ? t
+            : throw new ArgumentException(
+                $"Unknown efml type: '{s}'. Valid types: {string.Join(", ", _fromString.Keys)}.");
 
     public static string ToEfml(EfType type) => type.ToString();
 }

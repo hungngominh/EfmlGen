@@ -101,6 +101,34 @@ public partial class MainWindow : Window
         if (profile != null) LoadProfileIntoForm(profile);
     }
 
+    private void ProviderCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // Provider switch flips DB defaults the user almost always wants:
+        //   Postgres  → port 5432, schema "public"
+        //   SqlServer → port 1433, schema "dbo"
+        // Only overwrite when the field currently holds the *other* provider's default
+        // so we don't stomp on a user-entered custom value.
+        if (PortBox is null || SchemasBox is null) return;
+        var provider = SelectedProvider();
+        if (provider == "SqlServer")
+        {
+            if (PortBox.Text.Trim() is "" or "5432") PortBox.Text = "1433";
+            if (SchemasBox.Text.Trim() is "" or "public") SchemasBox.Text = "dbo";
+        }
+        else
+        {
+            if (PortBox.Text.Trim() is "" or "1433") PortBox.Text = "5432";
+        }
+    }
+
+    private string SelectedProvider() =>
+        (ProviderCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() == "SqlServer"
+            ? "SqlServer" : "Postgres";
+
+    private static DbProvider ToDbProvider(string s) =>
+        string.Equals(s, "SqlServer", StringComparison.OrdinalIgnoreCase)
+            ? DbProvider.SqlServer : DbProvider.Postgres;
+
     private void LoadProfileIntoForm(ConnectionProfile p)
     {
         ProfileNameBox.Text = p.Name;
@@ -302,10 +330,11 @@ public partial class MainWindow : Window
         var connStr = ProfileStore.BuildConnectionString(profile, PasswordBox.Password);
         GenConnStringBox.Text = connStr;
 
+        var dbProvider = ToDbProvider(profile.Provider);
         await RunAsync("Testing connection...", () =>
         {
             var schemas = profile.Schemas.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray();
-            var dbModel = GenWorker.ReadSchema(connStr, DbProvider.Postgres, schemas);
+            var dbModel = GenWorker.ReadSchema(connStr, dbProvider, schemas);
             Console.WriteLine($"OK. DB: {dbModel.DatabaseName}, Tables in schemas: {dbModel.Tables.Count}");
         });
     }
@@ -317,10 +346,11 @@ public partial class MainWindow : Window
         GenConnStringBox.Text = connStr;
         var efmlPath = EfmlPathBox.Text.Trim();
 
+        var dbProvider = ToDbProvider(profile.Provider);
         await RunAsync("Loading tables...", () =>
         {
             var schemas = profile.Schemas.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray();
-            var dbModel = GenWorker.ReadSchema(connStr, DbProvider.Postgres, schemas);
+            var dbModel = GenWorker.ReadSchema(connStr, dbProvider, schemas);
 
             var preselect = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             if (!string.IsNullOrEmpty(efmlPath) && File.Exists(efmlPath))
@@ -450,10 +480,11 @@ public partial class MainWindow : Window
             return;
         }
 
+        var dbProvider = ToDbProvider(profile.Provider);
         await RunAsync($"Scaffolding {selectedTables.Length} tables...", () =>
         {
             var schemas = profile.Schemas.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray();
-            var result = GenWorker.Scaffold(connStr, DbProvider.Postgres, schemas, selectedTables, modelName, ns, ns, efmlPath, overwrite, forceDateTime);
+            var result = GenWorker.Scaffold(connStr, dbProvider, schemas, selectedTables, modelName, ns, ns, efmlPath, overwrite, forceDateTime);
             PrintMergeReport(result.MergeReport);
             PrintWarnings(result.Warnings);
 
@@ -503,7 +534,7 @@ public partial class MainWindow : Window
         var dcTemplate = DataContextTemplateBox.Text.Trim();
         var connStr = GenConnStringBox.Text;
 
-        if (!File.Exists(efmlPath)) { MessageBox.Show($"efml not found:\n{efmlPath}", "Gen-code", MessageBoxButton.OK, MessageBoxImage.Error); return; }
+        if (!File.Exists(efmlPath)) { MessageBox.Show($".efml file not found:\n{efmlPath}", "Gen-code", MessageBoxButton.OK, MessageBoxImage.Error); return; }
         if (string.IsNullOrEmpty(outDir)) { MessageBox.Show("Pick output directory.", "Gen-code", MessageBoxButton.OK, MessageBoxImage.Information); return; }
 
         if (string.IsNullOrEmpty(contextClass))

@@ -8,23 +8,22 @@ internal static class SmokeTest
 {
     public static int Run(System.Collections.Generic.Dictionary<string, string> opts)
     {
-        var connStr = opts.TryGetValue("--conn", out var c)
-            ? c
-            : opts.TryGetValue("--conn-env", out var e)
-                ? Environment.GetEnvironmentVariable(e)
-                  ?? throw new InvalidOperationException($"Env var {e} not set")
-                : throw new ArgumentException("Missing --conn or --conn-env");
+        ProfileResolver.ApplyProfile(opts);
+        var connStr = ScaffoldEfml.ResolveConnectionString(opts);
 
-        var schemaArg = opts.TryGetValue("--schemas", out var s) ? s : "public,dbo";
+        var providerStr = opts.TryGetValue("--provider", out var pv) ? pv : "Postgres";
+        var provider = ScaffoldEfml.ParseProvider(providerStr);
+
+        var schemaArg = opts.TryGetValue("--schemas", out var s) ? s : (provider == DbProvider.SqlServer ? "dbo" : "public,dbo");
         var schemas = schemaArg.Split(',', StringSplitOptions.RemoveEmptyEntries);
         var tablesArg = opts.TryGetValue("--tables", out var t) ? t : null;
         var tables = tablesArg?.Split(',', StringSplitOptions.RemoveEmptyEntries);
 
-        Console.WriteLine($"Connecting (schemas: {string.Join(",", schemas)}, tables: {(tables == null ? "all" : string.Join(",", tables))})...");
+        Console.WriteLine($"Connecting ({provider}, schemas: {string.Join(",", schemas)}, tables: {(tables == null ? "all" : string.Join(",", tables))})...");
 
         var model = DatabaseSchemaReader.Read(
             connStr,
-            DbProvider.Postgres,
+            provider,
             new SchemaReadOptions(Schemas: schemas, Tables: tables));
 
         Console.WriteLine($"Connected. DB: {model.DatabaseName}");

@@ -10,13 +10,26 @@ public static class EfmlReader
 {
     private static readonly XNamespace P1 = "http://devart.com/schemas/EntityDeveloper/1.0";
 
-    public static EfmlModel ReadFile(string path) => Read(XDocument.Load(path));
-
-    public static EfmlModel Read(XDocument doc)
+    public static EfmlModel ReadFile(string path)
     {
-        var root = doc.Root ?? throw new InvalidDataException("Empty efml document");
+        XDocument doc;
+        try
+        {
+            doc = XDocument.Load(path);
+        }
+        catch (System.Xml.XmlException ex)
+        {
+            throw new InvalidDataException($"Failed to parse .efml as XML ({path}): {ex.Message}", ex);
+        }
+        return Read(doc, path);
+    }
+
+    public static EfmlModel Read(XDocument doc, string? sourcePath = null)
+    {
+        var src = sourcePath != null ? $" ({sourcePath})" : "";
+        var root = doc.Root ?? throw new InvalidDataException($"Empty .efml document{src}");
         if (root.Name.LocalName != "efcore")
-            throw new InvalidDataException($"Expected root <efcore>, got <{root.Name.LocalName}>");
+            throw new InvalidDataException($"Expected root <efcore> in .efml{src}, got <{root.Name.LocalName}>");
 
         var model = new EfmlModel
         {

@@ -19,8 +19,15 @@ public static class DatabaseModelMapper
         public string ContextNamespace { get; init; } = "Generated";
 
         /// <summary>
-        /// When true, Postgres timezone-aware types are stripped of their offset:
-        /// timestamptz → DateTime, timetz → TimeSpan. Default false (timezone preserved as DateTimeOffset).
+        /// Type-map selection. Must match the provider used to read the schema.
+        /// </summary>
+        public DbProvider Provider { get; init; } = DbProvider.Postgres;
+
+        /// <summary>
+        /// When true, timezone-aware types are stripped of their offset:
+        ///   Postgres: timestamptz → DateTime, timetz → TimeSpan.
+        ///   SQL Server: datetimeoffset → DateTime.
+        /// Default false (timezone preserved as DateTimeOffset).
         /// </summary>
         public bool ForceDateTime { get; init; } = false;
     }
@@ -122,9 +129,23 @@ public static class DatabaseModelMapper
         return cls;
     }
 
+    private readonly record struct MappedType(
+        EfType EfType, string? SqlType, int? Length, int? Precision, int? Scale, bool Unicode);
+
+    private static MappedType MapStoreType(string storeType, MapOptions opt)
+    {
+        if (opt.Provider == DbProvider.SqlServer)
+        {
+            var s = SqlServerTypeMap.Map(storeType, opt.ForceDateTime);
+            return new MappedType(s.EfType, s.SqlType, s.Length, s.Precision, s.Scale, s.Unicode);
+        }
+        var p = PostgresTypeMap.Map(storeType, opt.ForceDateTime);
+        return new MappedType(p.EfType, p.SqlType, p.Length, p.Precision, p.Scale, p.Unicode);
+    }
+
     private static EfProperty MapProperty(DatabaseColumn col, MapOptions opt)
     {
-        var t = PostgresTypeMap.Map(col.StoreType ?? "", opt.ForceDateTime);
+        var t = MapStoreType(col.StoreType ?? "", opt);
 
         return new EfProperty
         {

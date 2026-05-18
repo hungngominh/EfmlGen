@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using EfmlGen.Core;
 using EfmlGen.Templates;
@@ -39,15 +40,20 @@ public static class Program
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Error: {ex.Message}");
+            Console.Error.WriteLine($"Error: {ex.GetType().Name}: {ex.Message}");
+            var inner = ex.InnerException;
+            while (inner != null)
+            {
+                Console.Error.WriteLine($"  caused by: {inner.GetType().Name}: {inner.Message}");
+                inner = inner.InnerException;
+            }
             return 2;
         }
     }
 
     private static int UnknownCommand(string cmd)
     {
-        Console.Error.WriteLine($"Unknown command: {cmd}");
-        PrintHelp();
+        Console.Error.WriteLine($"Unknown command: '{cmd}'. Run with --help to see available commands.");
         return 1;
     }
 
@@ -61,10 +67,16 @@ public static class Program
               gen-code        Generate .cs files from an existing .efml
               db-smoke        Quick connection test, print table list
 
+            Profile (all commands):
+              --profile <name>         Load saved profile (skips repeating common flags).
+                                       Default location: %AppData%\EfmlGen\profiles.json (saved by the WPF UI).
+                                       Explicit CLI flags override profile values.
+              --profile-file <path>    Override default profiles file location.
+
             scaffold-efml options:
               --conn <s>              Connection string (or use --conn-env)
               --conn-env <NAME>       Env var name holding connection string (avoid logging password)
-              --provider <Postgres>   Currently only Postgres supported (SQL Server: Phase 4)
+              --provider <p>          Postgres | SqlServer (default: Postgres)
               --schemas <s1,s2>       DB schemas to scan (default: dbo)
               --tables <t1,t2>        Filter to specific table names (optional; default: all)
               --name <s>              Model name, e.g. CategoryEntities (required)
@@ -74,6 +86,7 @@ public static class Program
               --overwrite             Discard existing efml, scaffold fresh
               --diagram-name <s>      Diagram file suffix (default: Diagram1). Output: {model}.{diagram-name}.view
               --skip-view             Do not write the .view diagram layout file
+              --force-datetime        Map DB datetime columns to System.DateTime even if provider would use DateTimeOffset
 
             gen-code options:
               --efml <path>                   Path to .efml file (required)
@@ -91,7 +104,8 @@ public static class Program
 
             db-smoke options:
               --conn / --conn-env             Connection (same as scaffold-efml)
-              --schemas <s1,s2>               Default: public,dbo
+              --provider <p>                  Postgres | SqlServer (default: Postgres)
+              --schemas <s1,s2>               Default: public,dbo for Postgres; dbo for SqlServer
               --tables <t1,t2>                Filter (client-side)
               --detail                        Print column-level details for first 3 tables
 
@@ -126,7 +140,7 @@ public static class Program
         {
             var key = args[i];
             if (!key.StartsWith("--"))
-                throw new ArgumentException($"Expected flag, got: {key}");
+                throw new ArgumentException($"Expected flag (--name), got positional arg: '{key}'. Run with --help for usage.");
 
             if (i + 1 >= args.Length || args[i + 1].StartsWith("--"))
             {
@@ -144,6 +158,19 @@ internal static class GenCode
 {
     public static int Run(Dictionary<string, string> opts)
     {
+        ProfileResolver.ApplyProfile(opts);
+
+        // Fill --out from profile's OutputDir (gen-code wants a directory).
+        if (!opts.ContainsKey("--out")
+            && opts.TryGetValue("--profile-output-dir", out var poDir) && !string.IsNullOrWhiteSpace(poDir))
+        {
+            opts["--out"] = poDir;
+        }
+
+        // Profile stores Provider as "Postgres"/"SqlServer"; gen-code expects EF Core provider name.
+        if (opts.TryGetValue("--provider", out var pv) && string.Equals(pv, "Postgres", StringComparison.OrdinalIgnoreCase))
+            opts["--provider"] = "Npgsql";
+
         var efmlPath = Required(opts, "--efml");
         var outDir = Required(opts, "--out");
         var provider = Optional(opts, "--provider") ?? "Npgsql";
@@ -155,7 +182,7 @@ internal static class GenCode
         var dataContextTemplatePath = Optional(opts, "--datacontext-template");
 
         if (!File.Exists(efmlPath))
-            throw new FileNotFoundException($"efml file not found: {efmlPath}");
+            throw new FileNotFoundException($".efml file not found: {efmlPath}");
         Directory.CreateDirectory(outDir);
 
         var model = EfmlReader.ReadFile(efmlPath);
@@ -165,7 +192,8 @@ internal static class GenCode
         var hasError = WarningPrinter.Print(warnings);
         if (hasError && !opts.ContainsKey("--force"))
         {
-            Console.Error.WriteLine("Aborted due to errors. Pass --force to generate anyway.");
+            var errCount = warnings.Count(w => w.Severity == CollisionDetector.Severity.Error);
+            Console.Error.WriteLine($"Aborted due to {errCount} error(s) above. Pass --force to generate anyway.");
             return 3;
         }
 

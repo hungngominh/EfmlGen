@@ -13,6 +13,7 @@ out-*/
 # Publish output
 publish-wpf/
 publish-wpf-single/
+publish-release/
 
 # NuGet output
 nupkg/

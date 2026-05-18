@@ -12,17 +12,21 @@ internal static class ScaffoldEfml
 {
     public static int Run(Dictionary<string, string> opts)
     {
-        var connStr = opts.TryGetValue("--conn", out var c)
-            ? c
-            : opts.TryGetValue("--conn-env", out var e)
-                ? Environment.GetEnvironmentVariable(e)
-                  ?? throw new InvalidOperationException($"Env var {e} not set")
-                : throw new ArgumentException("Missing --conn or --conn-env");
+        ProfileResolver.ApplyProfile(opts);
+
+        // For scaffold-efml, --out is the .efml file path. If profile supplied OutputDir + ModelName
+        // we can synthesize it. User-provided --out always wins.
+        if (!opts.ContainsKey("--out")
+            && opts.TryGetValue("--profile-output-dir", out var poDir) && !string.IsNullOrWhiteSpace(poDir)
+            && opts.TryGetValue("--profile-model-name", out var poName) && !string.IsNullOrWhiteSpace(poName))
+        {
+            opts["--out"] = Path.Combine(poDir, poName + ".efml");
+        }
+
+        var connStr = ResolveConnectionString(opts);
 
         var providerStr = opts.TryGetValue("--provider", out var p) ? p : "Postgres";
-        var provider = providerStr.Equals("Postgres", StringComparison.OrdinalIgnoreCase) || providerStr.Equals("Npgsql", StringComparison.OrdinalIgnoreCase)
-            ? DbProvider.Postgres
-            : throw new NotSupportedException($"Provider {providerStr} not supported in MVP (Postgres only).");
+        var provider = ParseProvider(providerStr);
 
         var schemas = opts.TryGetValue("--schemas", out var sc)
             ? sc.Split(',', StringSplitOptions.RemoveEmptyEntries)
@@ -56,6 +60,7 @@ internal static class ScaffoldEfml
             Name = name,
             Namespace = ns,
             ContextNamespace = contextNs,
+            Provider = provider,
             ForceDateTime = forceDateTime
         });
 
@@ -127,4 +132,37 @@ internal static class ScaffoldEfml
         opts.TryGetValue(key, out var v)
             ? v
             : throw new ArgumentException($"Missing required option: {key}");
+
+    internal static string ResolveConnectionString(Dictionary<string, string> opts)
+    {
+        if (opts.TryGetValue("--conn", out var c))
+        {
+            if (string.IsNullOrWhiteSpace(c))
+                throw new ArgumentException("--conn was provided but its value is empty.");
+            return c;
+        }
+        if (opts.TryGetValue("--conn-env", out var envName))
+        {
+            if (string.IsNullOrWhiteSpace(envName))
+                throw new ArgumentException("--conn-env was provided but no env-var name followed it.");
+            var val = Environment.GetEnvironmentVariable(envName);
+            if (string.IsNullOrEmpty(val))
+                throw new InvalidOperationException(
+                    $"Environment variable '{envName}' (referenced by --conn-env) is not set or empty. " +
+                    $"Set it first, e.g.  $env:{envName} = \"Host=...;Username=...;Password=...;Database=...\"");
+            return val;
+        }
+        throw new ArgumentException("Missing connection string. Pass --conn \"<connection string>\" or --conn-env <ENV_VAR_NAME>.");
+    }
+
+    internal static DbProvider ParseProvider(string s) =>
+        s.Equals("Postgres", StringComparison.OrdinalIgnoreCase) ||
+        s.Equals("Npgsql", StringComparison.OrdinalIgnoreCase) ||
+        s.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase)
+            ? DbProvider.Postgres
+            : s.Equals("SqlServer", StringComparison.OrdinalIgnoreCase) ||
+              s.Equals("MSSQL", StringComparison.OrdinalIgnoreCase) ||
+              s.Equals("Microsoft.Data.SqlClient", StringComparison.OrdinalIgnoreCase)
+                ? DbProvider.SqlServer
+                : throw new NotSupportedException($"Provider '{s}' not supported. Use Postgres or SqlServer.");
 }
