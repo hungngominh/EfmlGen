@@ -7,6 +7,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 using EfmlGen.Core;
 using EfmlGen.Db;
 using EfmlGen.Wpf.Services;
@@ -21,6 +23,8 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<TableItem> _tables = new();
     private readonly ObservableCollection<TableItem> _filteredTables = new();
 
+    private bool _suppressProfileFilter;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -29,7 +33,36 @@ public partial class MainWindow : Window
             Dispatcher.Invoke(() => LogLine(line))));
 
         TablesList.ItemsSource = _filteredTables;
+
+        ProfileCombo.AddHandler(TextBoxBase.TextChangedEvent,
+            new TextChangedEventHandler(ProfileCombo_TextChanged));
+        ProfileCombo.DropDownClosed += ProfileCombo_DropDownClosed;
+
         Loaded += (_, _) => LoadProfiles();
+    }
+
+    private void ProfileCombo_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_suppressProfileFilter) return;
+        if (ProfileCombo.ItemsSource is null) return;
+
+        var view = CollectionViewSource.GetDefaultView(ProfileCombo.ItemsSource);
+        if (view == null) return;
+
+        var query = ProfileCombo.Text?.Trim() ?? "";
+        view.Filter = string.IsNullOrEmpty(query)
+            ? null
+            : item => item is string s && s.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0;
+
+        if (ProfileCombo.IsKeyboardFocusWithin && !string.IsNullOrEmpty(query) && !ProfileCombo.IsDropDownOpen)
+            ProfileCombo.IsDropDownOpen = true;
+    }
+
+    private void ProfileCombo_DropDownClosed(object? sender, EventArgs e)
+    {
+        if (ProfileCombo.ItemsSource is null) return;
+        var view = CollectionViewSource.GetDefaultView(ProfileCombo.ItemsSource);
+        if (view?.Filter != null) view.Filter = null;
     }
 
     // ------------------- Profile management -------------------
@@ -47,10 +80,18 @@ public partial class MainWindow : Window
 
     private void RefreshProfileCombo()
     {
-        ProfileCombo.ItemsSource = null;
-        ProfileCombo.ItemsSource = _settings.Profiles.Select(p => p.Name).ToList();
-        if (!string.IsNullOrEmpty(_settings.LastUsedProfileName))
-            ProfileCombo.SelectedItem = _settings.LastUsedProfileName;
+        _suppressProfileFilter = true;
+        try
+        {
+            ProfileCombo.ItemsSource = null;
+            ProfileCombo.ItemsSource = _settings.Profiles.Select(p => p.Name).ToList();
+            if (!string.IsNullOrEmpty(_settings.LastUsedProfileName))
+                ProfileCombo.SelectedItem = _settings.LastUsedProfileName;
+        }
+        finally
+        {
+            _suppressProfileFilter = false;
+        }
     }
 
     private void ProfileCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -83,8 +124,11 @@ public partial class MainWindow : Window
     private void MainTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (!ReferenceEquals(e.OriginalSource, MainTabs)) return;
+
+        SyncNavToSelectedTab();
+
         if (DiagramViewer is null) return;
-        if (MainTabs.SelectedItem is TabItem tab && tab.Content is DiagramView)
+        if (MainTabs.SelectedIndex == 3)
         {
             if (string.IsNullOrWhiteSpace(DiagramViewer.CurrentEfmlPath))
             {
@@ -95,6 +139,30 @@ public partial class MainWindow : Window
                     DiagramViewer.CurrentEfmlPath = fallback;
             }
         }
+    }
+
+    private void Nav_Checked(object sender, RoutedEventArgs e)
+    {
+        if (MainTabs is null) return;
+        if (sender is RadioButton rb && rb.Tag is string tag && int.TryParse(tag, out var idx))
+        {
+            if (MainTabs.SelectedIndex != idx) MainTabs.SelectedIndex = idx;
+        }
+    }
+
+    private void SyncNavToSelectedTab()
+    {
+        if (SidebarNav is null) return;
+        var idx = MainTabs.SelectedIndex;
+        RadioButton? target = idx switch
+        {
+            0 => NavConnection,
+            1 => NavScaffold,
+            2 => NavGenerate,
+            3 => NavDiagram,
+            _ => null
+        };
+        if (target != null && target.IsChecked != true) target.IsChecked = true;
     }
 
     private ConnectionProfile BuildProfileFromForm()
@@ -502,7 +570,7 @@ public partial class MainWindow : Window
     {
         Dispatcher.Invoke(() =>
         {
-            StatusBarText.Text = text;
+            StatusBarText.Text = $"EfmlGen Designer · {text}";
             StatusText.Text = text;
             ProgressBar.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
             ProgressBar.IsIndeterminate = busy;
