@@ -1,0 +1,260 @@
+<Window x:Class="EfmlGen.Wpf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:EfmlGen.Wpf"
+        Title="EfmlGen Designer" Height="780" Width="1100"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="Segoe UI" FontSize="13">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="14,5"/>
+            <Setter Property="MinWidth" Value="100"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+        </Style>
+        <Style TargetType="TextBlock" x:Key="FieldLabel">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="PasswordBox">
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="220"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top: Profile selector -->
+        <Border Grid.Row="0" Background="#F0F4F8" Padding="8" CornerRadius="4" Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="220"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Profile:" Style="{StaticResource FieldLabel}"/>
+                <ComboBox Grid.Column="1" x:Name="ProfileCombo" SelectionChanged="ProfileCombo_SelectionChanged"/>
+                <TextBlock Grid.Column="2" x:Name="StatusText" VerticalAlignment="Center" Margin="16,0,0,0" Foreground="#555"/>
+                <StackPanel Grid.Column="3" Orientation="Horizontal">
+                    <Button Content="Import from .efml..." Click="ImportFromEfml_Click"
+                            ToolTip="Read an existing .efml and pre-fill a new profile (namespace, model name, schemas, output dir, provider)."/>
+                    <Button Content="Save Profile" Click="SaveProfile_Click"/>
+                    <Button Content="Delete" Click="DeleteProfile_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Tabs -->
+        <TabControl Grid.Row="1" x:Name="MainTabs" SelectionChanged="MainTabs_SelectionChanged">
+
+            <!-- TAB 1: Connection -->
+            <TabItem Header="1. Connection">
+                <Grid Margin="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="160"/>
+                        <ColumnDefinition Width="400"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="36"/>
+                        <RowDefinition Height="36"/>
+                        <RowDefinition Height="36"/>
+                        <RowDefinition Height="36"/>
+                        <RowDefinition Height="36"/>
+                        <RowDefinition Height="36"/>
+                        <RowDefinition Height="36"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="Profile Name:" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Grid.Row="0" Grid.Column="1" x:Name="ProfileNameBox"/>
+
+                    <TextBlock Grid.Row="1" Text="Provider:" Style="{StaticResource FieldLabel}"/>
+                    <ComboBox Grid.Row="1" Grid.Column="1" x:Name="ProviderCombo">
+                        <ComboBoxItem Content="Postgres" IsSelected="True"/>
+                        <ComboBoxItem Content="SqlServer" IsEnabled="False"/>
+                    </ComboBox>
+
+                    <TextBlock Grid.Row="2" Text="Host:" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="HostBox"/>
+
+                    <TextBlock Grid.Row="3" Text="Port:" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Grid.Row="3" Grid.Column="1" x:Name="PortBox" Text="5432"/>
+
+                    <TextBlock Grid.Row="4" Text="Database:" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Grid.Row="4" Grid.Column="1" x:Name="DatabaseBox"/>
+
+                    <TextBlock Grid.Row="5" Text="Username:" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Grid.Row="5" Grid.Column="1" x:Name="UsernameBox"/>
+
+                    <TextBlock Grid.Row="6" Text="Password:" Style="{StaticResource FieldLabel}"/>
+                    <PasswordBox Grid.Row="6" Grid.Column="1" x:Name="PasswordBox"/>
+
+                    <StackPanel Grid.Row="7" Grid.Column="1" Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button Content="Test Connection" Click="TestConnection_Click" MinWidth="140"/>
+                        <Button Content="Load Tables ▶" Click="LoadTables_Click" MinWidth="140"/>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 2: Scaffold -->
+            <TabItem Header="2. Scaffold from DB → .efml">
+                <Grid Margin="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="380"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                        <TextBlock Text="Schemas (comma-separated):" Margin="0,0,0,4"/>
+                        <TextBox x:Name="SchemasBox" Text="dbo"/>
+
+                        <TextBlock Text="Model name:" Margin="0,12,0,4"/>
+                        <TextBox x:Name="ModelNameBox"/>
+
+                        <TextBlock Text="Namespace:" Margin="0,12,0,4"/>
+                        <TextBox x:Name="NamespaceBox"/>
+
+                        <TextBlock Text="Output .efml path:" Margin="0,12,0,4"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" x:Name="EfmlPathBox"/>
+                            <Button Grid.Column="1" Content="..." Click="BrowseEfml_Click" MinWidth="36" Margin="6,0,0,0"/>
+                        </Grid>
+
+                        <CheckBox x:Name="OverwriteChk" Content="Overwrite (discard existing GUIDs)" Margin="0,12,0,0"/>
+                        <CheckBox x:Name="ForceDateTimeChk" Content="Force DateTime (timestamptz → DateTime, timetz → TimeSpan)" Margin="0,6,0,0"/>
+
+                        <Separator Margin="0,16,0,8"/>
+
+                        <TextBlock Text="Selected: 0" x:Name="SelectedCountText" Margin="0,0,0,8" FontWeight="Bold"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Select all" Click="SelectAllTables_Click"/>
+                            <Button Content="Clear" Click="ClearTables_Click"/>
+                        </StackPanel>
+
+                        <Button Content="Scaffold .efml" Click="Scaffold_Click" Margin="0,16,0,0" Height="40" FontWeight="Bold" Background="#1E88E5" Foreground="White"/>
+                    </StackPanel>
+
+                    <DockPanel Grid.Column="1">
+                        <TextBlock DockPanel.Dock="Top" Text="Tables in selected schema(s):" Margin="0,0,0,4"/>
+                        <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" x:Name="TableSearchBox" TextChanged="TableSearch_TextChanged"
+                                     ToolTip="Type to filter (case-insensitive contains)"/>
+                            <TextBlock Grid.Column="1" x:Name="TableTotalText" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="#555"/>
+                        </Grid>
+                        <ListBox x:Name="TablesList" SelectionMode="Multiple">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Content="{Binding Display}" IsChecked="{Binding IsSelected}" Tag="{Binding Name}"
+                                              Checked="TableCheck_Changed" Unchecked="TableCheck_Changed"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 3: Generate code -->
+            <TabItem Header="3. Generate .cs from .efml">
+                <Grid Margin="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="36"/>
+                        <RowDefinition Height="36"/>
+                        <RowDefinition Height="36"/>
+                        <RowDefinition Height="36"/>
+                        <RowDefinition Height="36"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text=".efml path:" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Grid.Row="0" Grid.Column="1" x:Name="GenEfmlPathBox"/>
+                    <Button Grid.Row="0" Grid.Column="2" Content="..." Click="BrowseGenEfml_Click" MinWidth="36"/>
+
+                    <TextBlock Grid.Row="1" Text="Output directory:" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" x:Name="OutputDirBox"/>
+                    <Button Grid.Row="1" Grid.Column="2" Content="..." Click="BrowseOutputDir_Click" MinWidth="36"/>
+
+                    <TextBlock Grid.Row="2" Text="Context class:" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="ContextClassBox"/>
+
+                    <TextBlock Grid.Row="3" Text="DataContext template:" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Grid.Row="3" Grid.Column="1" x:Name="DataContextTemplateBox" ToolTip="Optional. Leave empty to use built-in template."/>
+                    <Button Grid.Row="3" Grid.Column="2" Content="..." Click="BrowseDataContextTemplate_Click" MinWidth="36"/>
+
+                    <TextBlock Grid.Row="4" Text="Connection string:" Style="{StaticResource FieldLabel}"/>
+                    <TextBox Grid.Row="4" Grid.Column="1" x:Name="GenConnStringBox" ToolTip="Baked into DbContext OnConfiguring. Auto-filled from Connection tab."/>
+
+                    <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" Margin="0,12,0,0">
+                        <CheckBox x:Name="SkipDataContextChk" Content="Skip DataContext.cs" Margin="0,0,16,0"/>
+                        <CheckBox x:Name="SkipInfoChk" Content="Skip .info file" Margin="0,0,16,0"/>
+                        <CheckBox x:Name="ForceChk" Content="Force (ignore collision errors)"/>
+                    </StackPanel>
+
+                    <Button Grid.Row="6" Grid.Column="1" Content="Generate .cs files" Click="GenCode_Click"
+                            Margin="0,16,0,0" Height="40" FontWeight="Bold" Background="#43A047" Foreground="White"
+                            HorizontalAlignment="Left" Width="200"/>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 4: Diagram viewer -->
+            <TabItem Header="4. Diagram">
+                <local:DiagramView x:Name="DiagramViewer"/>
+            </TabItem>
+        </TabControl>
+
+        <!-- Log panel -->
+        <Grid Grid.Row="2" Margin="0,8,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <DockPanel Grid.Row="0">
+                <TextBlock Text="Log" FontWeight="Bold" DockPanel.Dock="Left"/>
+                <Button Content="Clear" Click="ClearLog_Click" DockPanel.Dock="Right" HorizontalAlignment="Right" MinWidth="60"/>
+            </DockPanel>
+            <TextBox Grid.Row="1" x:Name="LogBox" IsReadOnly="True" TextWrapping="NoWrap"
+                     FontFamily="Consolas" FontSize="12"
+                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                     Background="#1E1E1E" Foreground="#D4D4D4" Padding="6"/>
+        </Grid>
+
+        <!-- Status bar -->
+        <StatusBar Grid.Row="3" Margin="0,4,0,0">
+            <StatusBarItem>
+                <TextBlock x:Name="StatusBarText" Text="Ready"/>
+            </StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right">
+                <ProgressBar x:Name="ProgressBar" IsIndeterminate="False" Width="200" Height="14" Visibility="Collapsed"/>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>

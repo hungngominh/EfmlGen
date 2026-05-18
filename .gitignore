@@ -1,0 +1,27 @@
+# Build output
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# Visual Studio cache
+.vs/
+
+# Test output folders
+out-*/
+
+# Publish output
+publish-wpf/
+publish-wpf-single/
+
+# NuGet output
+nupkg/
+*.nupkg
+
+# 3rd-party reference source (not part of this repo)
+ref/
+
+# OS / editor
+Thumbs.db
+.DS_Store
+*.swp

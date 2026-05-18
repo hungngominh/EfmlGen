@@ -1,0 +1,387 @@
+<?xml version="1.0" encoding="utf-8"?>
+<efcore context-namespace="AllianceMiddlemanWebAPI.Core.Data.Categories" namespace="AllianceMiddlemanWebAPI.Core.Data.Categories" p1:name="CategoryEntities" p1:Guid="ceac4bc3-6164-42d0-a418-c7c37851396c" xmlns:p1="http://devart.com/schemas/EntityDeveloper/1.0">
+  <class name="ConfigState" entity-set="ConfigState" table="`ConfigState`" schema="dbo" p1:Guid="2f3366b4-9937-444e-b2c1-fcb7c195c476">
+    <id name="Id" type="Int64" value-generated="OnAdd" p1:ValidateRequired="true" p1:Guid="b5ff53fa-813e-4a28-97f1-9aa7101aae06">
+      <column name="`Id`" not-null="True" p1:unicode="False" />
+    </id>
+    <property name="Code" type="String" p1:ValidateRequired="true" p1:Guid="d8b9e2c6-c3fe-4207-928c-82165e7b5bac">
+      <column name="`Code`" not-null="True" p1:unicode="True" />
+    </property>
+    <property name="Name" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="f291a787-3930-46b0-a754-aa1707fe5eef">
+      <column name="`Name`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="IsDeleted" type="Boolean" p1:ValidateRequired="true" p1:Guid="c852e2ec-4d55-4faa-9c22-b46fc00412ef">
+      <column name="`IsDeleted`" not-null="True" p1:unicode="False" />
+    </property>
+    <property name="IsDisable" type="Boolean" p1:ValidateRequired="true" p1:Guid="318e7236-1328-4387-a830-966746a3c30f">
+      <column name="`IsDisable`" not-null="True" p1:unicode="False" />
+    </property>
+    <property name="Log_CreatedDate" type="DateTimeOffset" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="c73e4756-96cd-4c1d-af3c-81e4b4229f98">
+      <column name="`Log_CreatedDate`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="Log_CreatedBy" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="9d71f635-e2a7-425e-b0dc-5dfac6cfeaf2">
+      <column name="`Log_CreatedBy`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="Log_UpdatedDate" type="DateTimeOffset" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="09ce8a3f-26ff-454d-9345-1bd2dbd3fb65">
+      <column name="`Log_UpdatedDate`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="Log_UpdatedBy" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="2455ae4f-373b-44cb-88d2-b568d5cb8e57">
+      <column name="`Log_UpdatedBy`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="TimeStamp" type="DateTimeOffset" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="90231d0e-4dca-4b82-8cc2-82c396bfbd9d">
+      <column name="`TimeStamp`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="TimeStampText" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="49eb632b-3e62-4e4e-9f43-2b8c9a9f0c21">
+      <column name="`TimeStampText`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="Note" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="14680e32-6593-4c25-876d-cc586cdf7955">
+      <column name="`Note`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="OrderNo" type="Int32" p1:ValidateRequired="true" p1:Guid="8f9309a2-5ef1-4f2c-9660-eecb6819c955">
+      <column name="`OrderNo`" default="0" not-null="True" sql-type="int4" p1:unicode="False" />
+    </property>
+    <property name="ID_GUID" type="Guid" value-generated="OnAdd" p1:ValidateRequired="true" p1:Guid="3c56ef27-e2b6-47c2-99e7-2913f1a5e7b6">
+      <column name="`ID_GUID`" default="uuid_generate_v7()" not-null="True" sql-type="uuid" p1:unicode="False" />
+    </property>
+  </class>
+  <class name="ConfigReportOrderReason" entity-set="ConfigReportOrderReason" table="`ConfigReportOrderReason`" schema="dbo" p1:Guid="dba2219c-efb0-4471-ba1a-60c3354816ed">
+    <id name="Id" type="Int64" value-generated="OnAdd" p1:ValidateRequired="true" p1:Guid="808ef38b-087a-4fa7-854e-eb41baf1fbae">
+      <column name="`Id`" not-null="True" p1:unicode="False" />
+    </id>
+    <property name="IsDeleted" type="Boolean" p1:ValidateRequired="true" p1:Guid="0e33e2ff-b589-46b3-9856-d76b67c4df63">
+      <column name="`IsDeleted`" default="false" not-null="True" sql-type="bool" p1:unicode="False" />
+    </property>
+    <property name="Log_CreatedDate" type="DateTimeOffset" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="9bb8a11b-cc57-4f86-b91b-f2c95e164beb">
+      <column name="`Log_CreatedDate`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="Log_CreatedBy" type="String" p1:nullable="True" p1:ValidateMaxLength="500" p1:ValidateRequired="false" p1:Guid="73db522b-a331-4ce7-abce-62a1375b6098">
+      <column name="`Log_CreatedBy`" not-null="False" length="500" p1:unicode="True" />
+    </property>
+    <property name="Log_UpdatedDate" type="DateTimeOffset" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="cc7456e9-f4e4-44d3-b8ee-75e39c49daaf">
+      <column name="`Log_UpdatedDate`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="Log_UpdatedBy" type="String" p1:nullable="True" p1:ValidateMaxLength="500" p1:ValidateRequired="false" p1:Guid="2f4a3a85-3e6e-493b-8421-4288d89bcec8">
+      <column name="`Log_UpdatedBy`" not-null="False" length="500" p1:unicode="True" />
+    </property>
+    <property name="Note" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="a68bf4a8-eccd-4699-8665-4cd4a57bb1e4">
+      <column name="`Note`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="OrderNo" type="Decimal" p1:ValidateRequired="true" p1:Guid="0a49990b-e257-41a1-b754-a892f11682e0">
+      <column name="`OrderNo`" default="0" not-null="True" precision="20" scale="6" sql-type="numeric" p1:unicode="False" />
+    </property>
+    <property name="IsDisable" type="Boolean" p1:ValidateRequired="true" p1:Guid="33a6a3a1-a3d4-4a29-8845-e72194feebd4">
+      <column name="`IsDisable`" default="false" not-null="True" sql-type="bool" p1:unicode="False" />
+    </property>
+    <property name="Code" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="e28c23b3-e418-4de8-9c26-823024ec55f0">
+      <column name="`Code`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="Name" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="ffcae421-ef2d-4215-a606-4a10f461b512">
+      <column name="`Name`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="Description" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="ec485f49-4ab9-4850-8a74-aaebd4c6b19e">
+      <column name="`Description`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="ColorCode" type="String" p1:nullable="True" p1:ValidateMaxLength="50" p1:ValidateRequired="false" p1:Guid="d350a32d-7752-4b59-b1c3-d935400acead">
+      <column name="`ColorCode`" not-null="False" length="50" p1:unicode="True" />
+    </property>
+    <property name="IconUrl" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="44997759-4cfd-46c5-aba7-457157f6a9b7">
+      <column name="`IconUrl`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="IsShowExtReason" type="Boolean" p1:ValidateRequired="true" p1:Guid="5eb9017d-243f-4530-b082-58eaa76c032e">
+      <column name="`IsShowExtReason`" default="false" not-null="True" sql-type="bool" p1:unicode="False" />
+    </property>
+    <property name="ID_GUID" type="Guid" value-generated="OnAdd" p1:ValidateRequired="true" p1:Guid="9b90376e-944f-454b-9e39-15eebaa449a0">
+      <column name="`ID_GUID`" default="uuid_generate_v7()" not-null="True" sql-type="uuid" p1:unicode="False" />
+    </property>
+  </class>
+  <class name="ConfigReportUserReason" entity-set="ConfigReportUserReason" table="`ConfigReportUserReason`" schema="dbo" p1:Guid="bc8b9661-0794-46ed-87d2-9b780e2261c8">
+    <id name="Id" type="Int64" value-generated="OnAdd" p1:ValidateRequired="true" p1:Guid="ecab4041-8020-4bcc-bb31-dcaab4f2f1f2">
+      <column name="`Id`" not-null="True" p1:unicode="False" />
+    </id>
+    <property name="IsDeleted" type="Boolean" p1:ValidateRequired="true" p1:Guid="95356137-7056-4a97-a0f1-93dd5ec29b9b">
+      <column name="`IsDeleted`" default="false" not-null="True" sql-type="bool" p1:unicode="False" />
+    </property>
+    <property name="Log_CreatedDate" type="DateTimeOffset" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="c374c187-9bc4-47fd-bebd-d76b7926cf17">
+      <column name="`Log_CreatedDate`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="Log_CreatedBy" type="String" p1:nullable="True" p1:ValidateMaxLength="500" p1:ValidateRequired="false" p1:Guid="f42f8bcc-c4ea-4534-8eaa-0fd94b9b3c7c">
+      <column name="`Log_CreatedBy`" not-null="False" length="500" p1:unicode="True" />
+    </property>
+    <property name="Log_UpdatedDate" type="DateTimeOffset" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="9dfff1df-1fba-4f7e-a43d-4fe92cdbf871">
+      <column name="`Log_UpdatedDate`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="Log_UpdatedBy" type="String" p1:nullable="True" p1:ValidateMaxLength="500" p1:ValidateRequired="false" p1:Guid="cb3a5bde-6c31-4e8b-9515-65762d0f1ae1">
+      <column name="`Log_UpdatedBy`" not-null="False" length="500" p1:unicode="True" />
+    </property>
+    <property name="Note" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="d7d5ecd4-4197-4cb4-a230-24e0dfd9da88">
+      <column name="`Note`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="OrderNo" type="Decimal" p1:ValidateRequired="true" p1:Guid="f5292d34-ef71-4537-b656-30c17a375a00">
+      <column name="`OrderNo`" default="0" not-null="True" precision="20" scale="6" sql-type="numeric" p1:unicode="False" />
+    </property>
+    <property name="IsDisable" type="Boolean" p1:ValidateRequired="true" p1:Guid="242dd74d-1337-42df-82e0-3b666b57489e">
+      <column name="`IsDisable`" default="false" not-null="True" sql-type="bool" p1:unicode="False" />
+    </property>
+    <property name="Code" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="83d30e1b-6eb5-427c-857e-89621a7f0f17">
+      <column name="`Code`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="Name" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="1f4a1304-5ba4-4451-a67c-cf35d7395bfc">
+      <column name="`Name`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="Description" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="43df8d38-7106-4497-83ef-c5146e81abd9">
+      <column name="`Description`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="ColorCode" type="String" p1:nullable="True" p1:ValidateMaxLength="50" p1:ValidateRequired="false" p1:Guid="0643f329-81cc-46e0-87ab-411916fbb668">
+      <column name="`ColorCode`" not-null="False" length="50" p1:unicode="True" />
+    </property>
+    <property name="IconUrl" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="e1025a5e-c297-42f9-8454-946fd8532f81">
+      <column name="`IconUrl`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="ShowExtReason" type="Boolean" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="03ec7ff6-d1df-4d0f-8756-f94225350be1">
+      <column name="`ShowExtReason`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="ID_GUID" type="Guid" value-generated="OnAdd" p1:ValidateRequired="true" p1:Guid="22c72fd7-7014-4c98-b269-a873efba0f78">
+      <column name="`ID_GUID`" default="uuid_generate_v7()" not-null="True" sql-type="uuid" p1:unicode="False" />
+    </property>
+  </class>
+  <class name="ConfigRentalServiceRatingPoint" entity-set="ConfigRentalServiceRatingPoint" table="`ConfigRentalServiceRatingPoint`" schema="dbo" p1:Guid="f24af8aa-7ba1-434d-88e7-b65d8aee3d10">
+    <id name="Id" type="Int64" value-generated="OnAdd" p1:ValidateRequired="true" p1:Guid="811e416f-b8d0-4f37-a98e-1952283462dc">
+      <column name="`Id`" not-null="True" p1:unicode="False" />
+    </id>
+    <property name="IsDeleted" type="Boolean" p1:ValidateRequired="true" p1:Guid="d4a72e56-71a8-479c-ace6-d01d61ae3f6d">
+      <column name="`IsDeleted`" default="false" not-null="True" sql-type="bool" p1:unicode="False" />
+    </property>
+    <property name="Log_CreatedDate" type="DateTimeOffset" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="64ec291a-dba8-432d-a5db-47cba41ab574">
+      <column name="`Log_CreatedDate`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="Log_CreatedBy" type="String" p1:nullable="True" p1:ValidateMaxLength="500" p1:ValidateRequired="false" p1:Guid="387c46a2-a2a5-4d86-b5c3-fd58e42ae89c">
+      <column name="`Log_CreatedBy`" not-null="False" length="500" p1:unicode="True" />
+    </property>
+    <property name="Log_UpdatedDate" type="DateTimeOffset" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="c59ebbd2-98a6-4fa9-ba39-000a26a0e5b5">
+      <column name="`Log_UpdatedDate`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="Log_UpdatedBy" type="String" p1:nullable="True" p1:ValidateMaxLength="500" p1:ValidateRequired="false" p1:Guid="645e1ba6-edfa-46eb-a5d5-7d9e152dc0ce">
+      <column name="`Log_UpdatedBy`" not-null="False" length="500" p1:unicode="True" />
+    </property>
+    <property name="Note" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="99c7f5b9-1dce-4e72-8835-451ca64d6efa">
+      <column name="`Note`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="OrderNo" type="Decimal" p1:ValidateRequired="true" p1:Guid="fbc22e48-af63-4977-8026-7b13fcb85879">
+      <column name="`OrderNo`" default="0" not-null="True" precision="20" scale="6" sql-type="numeric" p1:unicode="False" />
+    </property>
+    <property name="IsDisable" type="Boolean" p1:ValidateRequired="true" p1:Guid="eea976a0-b73c-4630-9963-b330c2fdf77d">
+      <column name="`IsDisable`" default="false" not-null="True" sql-type="bool" p1:unicode="False" />
+    </property>
+    <property name="Code" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="1358eb83-5464-437f-b61a-c9b5e50e83ea">
+      <column name="`Code`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="Name" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="0a6735e6-7f5a-43f4-a842-638cc330ee2f">
+      <column name="`Name`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="Description" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="5bac4292-1f61-4102-9b73-b503c35262e6">
+      <column name="`Description`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="ColorCode" type="String" p1:nullable="True" p1:ValidateMaxLength="50" p1:ValidateRequired="false" p1:Guid="e22b08fe-266f-4218-a265-73ee0fe1bf66">
+      <column name="`ColorCode`" not-null="False" length="50" p1:unicode="True" />
+    </property>
+    <property name="IconUrl" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="a57824d1-5163-44a3-a6e4-dbcef92c7857">
+      <column name="`IconUrl`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="Rating" type="Decimal" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="f4f023a3-5280-4b3f-9281-c6f938d5d242">
+      <column name="`Rating`" not-null="False" precision="18" scale="3" p1:unicode="False" />
+    </property>
+    <property name="ID_GUID" type="Guid" value-generated="OnAdd" p1:ValidateRequired="true" p1:Guid="8013da8f-39e8-4bb6-b781-275f8b7c45bf">
+      <column name="`ID_GUID`" default="uuid_generate_v7()" not-null="True" sql-type="uuid" p1:unicode="False" />
+    </property>
+  </class>
+  <class name="Mioto_VehicleOwner" entity-set="Mioto_VehicleOwner" table="`Mioto_VehicleOwner`" schema="dbo" p1:Guid="8fb468a3-382d-4a4f-a9c6-d03a8320141a">
+    <id name="Id" type="Int64" value-generated="OnAdd" p1:ValidateRequired="true" p1:Guid="2b5c2ea0-8437-42b4-9377-81b10825d8f1">
+      <column name="`Id`" not-null="True" p1:unicode="False" />
+    </id>
+    <property name="IsDeleted" type="Boolean" p1:ValidateRequired="true" p1:Guid="6f6683d2-5ffd-45d0-8020-80bab57c4bea">
+      <column name="`IsDeleted`" default="false" not-null="True" sql-type="bool" p1:unicode="False" />
+    </property>
+    <property name="Log_CreatedDate" type="DateTimeOffset" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="a69e02c9-35e7-405f-8279-c57ff2988f03">
+      <column name="`Log_CreatedDate`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="Log_CreatedBy" type="String" p1:nullable="True" p1:ValidateMaxLength="500" p1:ValidateRequired="false" p1:Guid="f5087ede-7222-477b-b2ec-466d9aff0928">
+      <column name="`Log_CreatedBy`" not-null="False" length="500" p1:unicode="True" />
+    </property>
+    <property name="Log_UpdatedDate" type="DateTimeOffset" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="e010b487-5757-4384-a89d-015864ffbb70">
+      <column name="`Log_UpdatedDate`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="Log_UpdatedBy" type="String" p1:nullable="True" p1:ValidateMaxLength="500" p1:ValidateRequired="false" p1:Guid="98c59c34-73aa-42aa-87c1-5e96e68127f8">
+      <column name="`Log_UpdatedBy`" not-null="False" length="500" p1:unicode="True" />
+    </property>
+    <property name="Note" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="96eaea65-bba6-482c-a219-7cef35942e31">
+      <column name="`Note`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="OrderNo" type="Decimal" p1:ValidateRequired="true" p1:Guid="559c8159-64e8-41c0-90c2-7449917c855a">
+      <column name="`OrderNo`" default="0" not-null="True" precision="20" scale="6" sql-type="numeric" p1:unicode="False" />
+    </property>
+    <property name="IsDisable" type="Boolean" p1:ValidateRequired="true" p1:Guid="375fe5ae-5f8e-4b73-ae2e-6dced8b7c97b">
+      <column name="`IsDisable`" default="false" not-null="True" sql-type="bool" p1:unicode="False" />
+    </property>
+    <property name="Code" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="ccb00237-e666-4710-a047-f018fca343ef">
+      <column name="`Code`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="Name" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="fc64f061-762d-4739-b0c9-3f0e7ef46cd0">
+      <column name="`Name`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="Description" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="a44e41f9-3747-4a5c-ada8-264723181c5f">
+      <column name="`Description`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="ColorCode" type="String" p1:nullable="True" p1:ValidateMaxLength="50" p1:ValidateRequired="false" p1:Guid="61a8224c-68c5-491b-90a7-20e192a43b05">
+      <column name="`ColorCode`" not-null="False" length="50" p1:unicode="True" />
+    </property>
+    <property name="IconUrl" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="1dfcfe7b-3ab7-4355-bb10-43a32a29aa4f">
+      <column name="`IconUrl`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="NameUnsign" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="f7120ae3-8d50-42f6-b738-bf97d91fab10">
+      <column name="`NameUnsign`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="ID_GUID" type="Guid" value-generated="OnAdd" p1:ValidateRequired="true" p1:Guid="e4b92fb3-a660-4452-93ab-402927e90d12">
+      <column name="`ID_GUID`" default="uuid_generate_v7()" not-null="True" sql-type="uuid" p1:unicode="False" />
+    </property>
+  </class>
+  <class name="Department" entity-set="Department" table="`Department`" schema="dbo" p1:Guid="99f6ab95-f7b2-4f23-97b2-2fc1879f1fb8">
+    <id name="Id" type="Int64" value-generated="OnAdd" p1:ValidateRequired="true" p1:Guid="4749c1a2-890f-44b6-b0ed-1ba8c27a60c6">
+      <column name="`Id`" not-null="True" p1:unicode="False" />
+    </id>
+    <property name="Code" type="String" p1:ValidateMaxLength="250" p1:ValidateRequired="true" p1:Guid="1f1fd440-c659-42d4-bfac-810a1fcb7989">
+      <column name="`Code`" not-null="True" length="250" p1:unicode="True" />
+    </property>
+    <property name="Name" type="String" p1:nullable="True" p1:ValidateMaxLength="500" p1:ValidateRequired="false" p1:Guid="ffb30d63-b573-4b04-a57e-35e268bdda5f">
+      <column name="`Name`" not-null="False" length="500" p1:unicode="True" />
+    </property>
+    <property name="OrderNo" type="Int32" p1:ValidateRequired="true" p1:Guid="2beef8ad-c73f-4dcc-97b6-9e6ce8e250ef">
+      <column name="`OrderNo`" default="0" not-null="True" sql-type="int4" p1:unicode="False" />
+    </property>
+    <property name="ParentId" type="Int64" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="cd4eeb69-495d-4758-b53e-b8577a7981ef">
+      <column name="`ParentId`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="IsDeleted" type="Boolean" p1:ValidateRequired="true" p1:Guid="98cf894e-c764-4c25-99c7-9e843405a376">
+      <column name="`IsDeleted`" default="false" not-null="True" sql-type="bool" p1:unicode="False" />
+    </property>
+    <property name="Log_CreatedDate" type="DateTimeOffset" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="6ec97f7c-c857-4afb-aa7e-a50bd04a2648">
+      <column name="`Log_CreatedDate`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="Log_CreatedBy" type="String" p1:nullable="True" p1:ValidateMaxLength="500" p1:ValidateRequired="false" p1:Guid="c6ee8c4e-54ea-4f44-a953-33caef239063">
+      <column name="`Log_CreatedBy`" not-null="False" length="500" p1:unicode="True" />
+    </property>
+    <property name="Log_UpdatedDate" type="DateTimeOffset" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="81fa1578-4777-4f1e-a6d7-b5f6608ed2af">
+      <column name="`Log_UpdatedDate`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="Log_UpdatedBy" type="String" p1:nullable="True" p1:ValidateMaxLength="500" p1:ValidateRequired="false" p1:Guid="821a1050-bec7-4cd2-86f2-dd45b9f050db">
+      <column name="`Log_UpdatedBy`" not-null="False" length="500" p1:unicode="True" />
+    </property>
+    <property name="IsDisable" type="Boolean" p1:ValidateRequired="true" p1:Guid="934b5064-b6a7-45db-b408-8e6b63f2f371">
+      <column name="`IsDisable`" default="false" not-null="True" sql-type="bool" p1:unicode="False" />
+    </property>
+    <property name="ColorCode" type="String" p1:nullable="True" p1:ValidateMaxLength="50" p1:ValidateRequired="false" p1:Guid="b7ce5d02-cee5-44fd-ad12-16ecee03eb6d">
+      <column name="`ColorCode`" not-null="False" length="50" p1:unicode="True" />
+    </property>
+    <property name="DisplayName" type="String" p1:nullable="True" p1:ValidateMaxLength="250" p1:ValidateRequired="false" p1:Guid="00f7e3a0-0d96-4e1e-86be-b726d647303b">
+      <column name="`DisplayName`" not-null="False" length="250" p1:unicode="True" />
+    </property>
+    <property name="Note" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="d85d7ac3-3ec9-46de-97f9-b2237cf87f73">
+      <column name="`Note`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="AllowCreatePassword" type="Boolean" p1:ValidateRequired="true" p1:Guid="97c67e08-fdf9-4b8a-b3dc-12fd51e44ef9">
+      <column name="`AllowCreatePassword`" default="false" not-null="True" sql-type="bool" p1:unicode="False" />
+    </property>
+    <property name="CompanyId" type="Int64" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="0aebc432-af76-4796-bb0f-c520f2356c45">
+      <column name="`CompanyId`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="IsReadOnly" type="Boolean" p1:ValidateRequired="true" p1:Guid="c8064625-98f4-43e1-b6e8-3c701aff1f07">
+      <column name="`IsReadOnly`" default="false" not-null="True" sql-type="bool" p1:unicode="False" />
+    </property>
+    <property name="TimeStamp" type="Blob" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="687624e7-5287-4b9b-93d4-a039e6924470">
+      <column name="`TimeStamp`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="TimeStampText" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="b6268bf8-1c17-4e0f-8211-ffa79050d726">
+      <column name="`TimeStampText`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="JoinToOrgChart" type="Boolean" p1:ValidateRequired="true" p1:Guid="34210ebd-ef78-4d3b-adb7-98ff061bfc52">
+      <column name="`JoinToOrgChart`" default="false" not-null="True" sql-type="bool" p1:unicode="False" />
+    </property>
+    <property name="ID_GUID" type="Guid" value-generated="OnAdd" p1:ValidateRequired="true" p1:Guid="08995b00-c057-44a5-82ba-8e79f06c1954">
+      <column name="`ID_GUID`" default="uuid_generate_v7()" not-null="True" sql-type="uuid" p1:unicode="False" />
+    </property>
+  </class>
+  <class name="Product_Company_Mapping" entity-set="Product_Company_Mapping" table="`Product_Company_Mapping`" schema="dbo" p1:Guid="d3a20474-2a40-4346-a7b4-7df85bf38315">
+    <id name="Id" type="Int64" value-generated="OnAdd" p1:ValidateRequired="true" p1:Guid="e002b840-7a96-4e5c-be58-2de97a212a75">
+      <column name="`Id`" not-null="True" p1:unicode="False" />
+    </id>
+    <property name="IsDeleted" type="Boolean" p1:ValidateRequired="true" p1:Guid="c503ada1-ce11-43da-a2ac-333380a79498">
+      <column name="`IsDeleted`" not-null="True" p1:unicode="False" />
+    </property>
+    <property name="Log_CreatedDate" type="DateTimeOffset" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="5ae06a06-8620-4e6d-8726-2f778094381d">
+      <column name="`Log_CreatedDate`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="Log_CreatedBy" type="String" p1:nullable="True" p1:ValidateMaxLength="500" p1:ValidateRequired="false" p1:Guid="c9e48c52-c9d7-471d-b121-ac28fa1866aa">
+      <column name="`Log_CreatedBy`" not-null="False" length="500" p1:unicode="True" />
+    </property>
+    <property name="Log_UpdatedDate" type="DateTimeOffset" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="dd61f08a-7657-4441-ba5a-06585b57c8d7">
+      <column name="`Log_UpdatedDate`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="Log_UpdatedBy" type="String" p1:nullable="True" p1:ValidateMaxLength="500" p1:ValidateRequired="false" p1:Guid="44281e97-ee04-4cf4-9e0a-3d2a930a8236">
+      <column name="`Log_UpdatedBy`" not-null="False" length="500" p1:unicode="True" />
+    </property>
+    <property name="Note" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="ed852c7f-af2e-48f0-935a-a6d06be3fb9c">
+      <column name="`Note`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="OrderNo" type="Decimal" p1:ValidateRequired="true" p1:Guid="f90a2045-84f8-4e5a-a43b-1d634ebbe8c9">
+      <column name="`OrderNo`" not-null="True" precision="20" scale="6" p1:unicode="False" />
+    </property>
+    <property name="IsDisable" type="Boolean" p1:ValidateRequired="true" p1:Guid="856c4613-9991-40f0-92a5-3f8c63f22fb1">
+      <column name="`IsDisable`" not-null="True" p1:unicode="False" />
+    </property>
+    <property name="Code" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="1f00eca9-4820-480c-9c90-9869510f4475">
+      <column name="`Code`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="Name" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="43cede35-c4e1-48b7-b4ab-60730f6bdad4">
+      <column name="`Name`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="Description" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="ca6c16cc-d05f-40e9-a64e-3b61218a892f">
+      <column name="`Description`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="ColorCode" type="String" p1:nullable="True" p1:ValidateMaxLength="50" p1:ValidateRequired="false" p1:Guid="8e09e310-decd-4ea1-ad0a-37b729135623">
+      <column name="`ColorCode`" not-null="False" length="50" p1:unicode="True" />
+    </property>
+    <property name="IconUrl" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="79ab50c7-dde9-4d97-a431-69c90affb371">
+      <column name="`IconUrl`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="ID_GUID" type="Guid" value-generated="OnAdd" p1:ValidateRequired="true" p1:Guid="17d43143-e96b-4d9a-a19f-946ae1353fbf">
+      <column name="`ID_GUID`" not-null="True" p1:unicode="False" />
+    </property>
+    <property name="MerchantProductGUID" type="Guid" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="38425c34-3ce8-42e5-afd0-224178cf6199">
+      <column name="`MerchantProductGUID`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="CompanyGUID" type="Guid" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="047421e6-b00d-4cdd-9715-5a4190b1a4f2">
+      <column name="`CompanyGUID`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="ValidFrom" type="DateTimeOffset" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="b42cf64a-212e-4512-a957-366156702cd4">
+      <column name="`ValidFrom`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="ExpiredAt" type="DateTimeOffset" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="76a81664-1c0f-4a48-a209-43cdfaaa8b49">
+      <column name="`ExpiredAt`" not-null="False" p1:unicode="False" />
+    </property>
+    <property name="Images" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="c243b5dc-13c4-4adf-845f-8efaf1de06c1">
+      <column name="`Images`" not-null="False" p1:unicode="True" />
+    </property>
+    <property name="MoreConfig" type="String" p1:nullable="True" p1:ValidateRequired="false" p1:Guid="853c7cc1-43df-44a8-84f3-4909716fcf43">
+      <column name="`MoreConfig`" not-null="False" p1:unicode="True" />
+    </property>
+  </class>
+  <associations>
+    <association name="Department_Department" cardinality="OneToMany" p1:Guid="bdc62953-4953-4d5f-9777-e80c3f08d217">
+      <end1 multiplicity="ZeroOrOne" name="Department_ParentId" class="Department" relation-class="Department" constrained="True" lazy="False" p1:Guid="f1aedb09-cdf4-4ca7-984e-f930730b35ad">
+        <property name="Id" />
+      </end1>
+      <end2 multiplicity="Many" name="Department_ParentId1" class="Department" relation-class="Department" lazy="False" p1:Guid="36ecd292-2038-42ef-b951-e6ede43ed48a">
+        <property name="ParentId" />
+      </end2>
+    </association>
+  </associations>
+</efcore>
