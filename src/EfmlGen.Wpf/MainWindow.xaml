@@ -5,7 +5,8 @@
         Title="EfmlGen Designer" Height="900" Width="1400"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BgPage}"
-        FontFamily="Segoe UI" FontSize="13">
+        FontFamily="Segoe UI" FontSize="13"
+        Icon="Assets/app.ico">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -27,8 +28,10 @@
                     <ColumnDefinition Width="Auto"/>    <!-- action buttons -->
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0" Text="EfmlGen Designer"
-                           Style="{StaticResource BrandText}" VerticalAlignment="Center"/>
+                <Image Grid.Column="0" Source="Assets/logo.png"
+                       Height="32" HorizontalAlignment="Left" VerticalAlignment="Center"
+                       Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"
+                       ToolTip="EfmlGen Designer"/>
 
                 <TextBlock Grid.Column="1" Text="Profile:" VerticalAlignment="Center"
                            Foreground="{StaticResource TextSecondary}" Margin="0,0,12,0"/>

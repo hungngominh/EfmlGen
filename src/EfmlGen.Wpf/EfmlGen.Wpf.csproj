@@ -16,6 +16,12 @@
     <AssemblyName>EfmlGen.Designer</AssemblyName>
     <RootNamespace>EfmlGen.Wpf</RootNamespace>
     <Version>0.2.0</Version>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\app.ico" />
+    <Resource Include="Assets\logo.png" />
+  </ItemGroup>
 
 </Project>

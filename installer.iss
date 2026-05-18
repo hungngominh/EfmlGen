@@ -31,6 +31,7 @@ DisableProgramGroupPage=yes
 LicenseFile=
 OutputDir=publish-release
 OutputBaseFilename=EfmlGen-Setup-v{#MyAppVersion}
+SetupIconFile=src\EfmlGen.Wpf\Assets\app.ico
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
