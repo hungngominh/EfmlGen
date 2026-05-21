@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VSTemplate Version="3.0.0" Type="Item" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
+  <TemplateData>
+    <DefaultName>EntityModel.efml</DefaultName>
+    <Name>EfmlGen Entity Model</Name>
+    <Description>Scaffold a new .efml entity model from a database (PostgreSQL or SQL Server) using a saved EfmlGen profile.</Description>
+    <ProjectType>CSharp</ProjectType>
+    <SortOrder>10</SortOrder>
+    <Icon>__TemplateIcon.png</Icon>
+    <ShowByDefault>true</ShowByDefault>
+  </TemplateData>
+  <TemplateContent>
+    <References />
+    <ProjectItem ReplaceParameters="true" TargetFileName="$fileinputname$.efml">EntityModel.efml</ProjectItem>
+  </TemplateContent>
+  <WizardExtension>
+    <Assembly>EfmlGen.Vsix, Version=0.3.0.0, Culture=Neutral, PublicKeyToken=null</Assembly>
+    <FullClassName>EfmlGen.Vsix.Wizard.NewItemWizard</FullClassName>
+  </WizardExtension>
+</VSTemplate>

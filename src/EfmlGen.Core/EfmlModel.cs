@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace EfmlGen.Core;
 
@@ -9,8 +10,21 @@ public sealed class EfmlModel
     public string Namespace { get; set; } = "";
     public string Name { get; set; } = "";
     public Guid Guid { get; set; }
+    /// <summary>
+    /// Optional override for the generated .cs filename prefix. Empty means derive from
+    /// the .efml filename (matches Entity Developer's default behavior).
+    /// </summary>
+    public string FileBaseName { get; set; } = "";
     public List<EfClass> Classes { get; } = new();
     public List<EfAssociation> Associations { get; } = new();
+}
+
+public static class EfmlPathing
+{
+    public static string ResolveFileBaseName(EfmlModel model, string efmlPath) =>
+        !string.IsNullOrEmpty(model.FileBaseName)
+            ? model.FileBaseName
+            : Path.GetFileNameWithoutExtension(efmlPath);
 }
 
 public sealed class EfClass

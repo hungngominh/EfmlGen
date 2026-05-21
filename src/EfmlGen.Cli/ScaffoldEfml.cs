@@ -74,12 +74,18 @@ internal static class ScaffoldEfml
             var existing = EfmlReader.ReadFile(outPath);
             var (merged, report) = EfmlMerger.Merge(model, existing);
             model = merged;
+            // Preserve any FileBaseName override stored in the existing efml.
+            if (string.IsNullOrEmpty(model.FileBaseName) && !string.IsNullOrEmpty(existing.FileBaseName))
+                model.FileBaseName = existing.FileBaseName;
             PrintMergeReport(report);
         }
         else if (overwriteFlag)
         {
             Console.WriteLine("[overwrite] Discarding existing efml; using fresh GUIDs.");
         }
+
+        if (opts.TryGetValue("--file-base-name", out var fbn) && !string.IsNullOrWhiteSpace(fbn))
+            model.FileBaseName = fbn.Trim();
 
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outPath))!);
         EfmlWriter.WriteFile(model, outPath);
@@ -90,9 +96,10 @@ internal static class ScaffoldEfml
             var diagramName = opts.TryGetValue("--diagram-name", out var dn) && !string.IsNullOrWhiteSpace(dn)
                 ? dn
                 : "Diagram1";
+            var fileBase = EfmlPathing.ResolveFileBaseName(model, outPath);
             var viewPath = Path.Combine(
                 Path.GetDirectoryName(Path.GetFullPath(outPath))!,
-                $"{Path.GetFileNameWithoutExtension(outPath)}.{diagramName}.view");
+                $"{fileBase}.{diagramName}.view");
             ViewWriter.WriteFile(model, viewPath, diagramName);
             Console.WriteLine($"Wrote {viewPath}");
         }

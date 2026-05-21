@@ -713,3 +713,99 @@ Cho phép split nhiều `.efml` theo group table, mỗi group 1 namespace — ch
 3. **Không gen:** `Ext/`, `IProjectEntity.cs`.
 
 4. **Provider dispatch:** chỉ áp dụng cho `Context.scriban` (`UseNpgsql` vs `UseSqlServer`, `int4` vs `int`, `uuid` vs `uniqueidentifier`, default `uuid_generate_v7()` vs `NEWSEQUENTIALID()`). Phần `DataContext.cs` user tự lo.
+
+---
+
+## 13. Visual Studio 2022 extension (VSIX)
+
+Thêm từ 0.3.0. Tích hợp EfmlGen vào VS 2022 thay cho việc gọi CLI tay hoặc chạy WPF GUI riêng. Source ở [src-vsix/](src-vsix/), độc lập với `EfmlGen.sln` chính.
+
+### 13.1. Engine strategy: bundle CLI
+
+VSIX target `net472` vì `devenv.exe` host trên .NET Framework 4.x, không thể reference trực tiếp `EfmlGen.Core/.Db/.Templates` (net8.0). Hai lựa chọn:
+
+| Approach | Pros | Cons |
+|---|---|---|
+| **Bundle CLI.exe (chọn)** | Đơn giản, không phụ thuộc cài đặt ngoài, dùng cùng binary đã test | VSIX file lớn (~37 MB do CLI self-contained ~79 MB compressed) |
+| Multi-target Core sang net472 | VSIX nhẹ, log realtime tốt hơn | Phải refactor — EF Core 8 chỉ net6+ |
+| Cài CLI riêng + PATH | VSIX nhẹ nhất | UX cài đặt phiền hơn, version skew |
+
+Chốt bundle. MSBuild target `PublishBundledCli` chạy `dotnet publish src/EfmlGen.Cli/EfmlGen.Cli.csproj -r win-x64 --self-contained -p:PublishSingleFile=true` vào `src-vsix/EfmlGen.Vsix/tools/cli/` trước `GetVsixSourceItems`. VSIX bundle vào `tools/cli/EfmlGen.Cli.exe`.
+
+### 13.2. Integration points
+
+1. **Tool Window** — `EfmlGenToolWindow : ToolWindowPane` host WPF UserControl. ViewModel call `CliRunner` (spawn subprocess). UI port giảm bớt từ `src/EfmlGen.Wpf/MainWindow.xaml` (bỏ Profile dropdown phức tạp, bỏ table picker).
+2. **Solution Explorer commands** trên `.efml` — `.vsct` group parent `IDM_VS_CTXT_ITEMNODE`. `BeforeQueryStatus` filter theo extension.
+3. **Add → New Item Wizard** — `IWizard` + `.vstemplate` register vào `CSharp\Data` subpath. `ProjectItemFinishedGenerating` run `scaffold-efml --out <stub>` để overwrite placeholder.
+
+### 13.3. Profile sharing
+
+VSIX dùng SHARED-SOURCE link tới `src/EfmlGen.Wpf/Services/ProfileStore.cs` (chỉ phụ thuộc `System.Text.Json` + `System.Security.Cryptography.ProtectedData`, net472 compatible):
+
+```xml
+<Compile Include="..\..\src\EfmlGen.Wpf\Services\ProfileStore.cs">
+  <Link>Services\ProfileStore.cs</Link>
+</Compile>
+```
+
+Cùng file `%AppData%\EfmlGen\profiles.json`, cùng DPAPI encryption → profile save trong WPF dùng được trong VSIX và ngược lại (giới hạn cùng user + cùng máy do `DataProtectionScope.CurrentUser`).
+
+### 13.4. Log streaming
+
+`OutputPaneLogger` tạo pane "EfmlGen" qua `IVsOutputWindow.CreatePane`. `CliRunner` redirect stdout/stderr, `OutputDataReceived` callback → `OutputStringThreadSafe`. Mỗi line CLI in ra hiện ngay trong VS Output pane, không block UI thread.
+
+Exit code mapping:
+- `0` — silent success.
+- `1` — usage error (MessageBox).
+- `2` — runtime error (DB connection, file IO) — MessageBox với chi tiết.
+- `3` — `gen-code` collision — MessageBox cho phép rerun với `--force`.
+
+### 13.5. SFG (Single File Generator) — defer
+
+Devart Entity Developer truyền thống dùng SFG (`IVsSingleFileGenerator`): user save `.efml` → tự sinh `.cs`. EfmlGen `gen-code` sinh N file (entity + DbContext + diagram + info), không khớp model "1 input → 1 output" của SFG. Workaround drop sibling files qua DTE phá nested item trong Solution Explorer. **Defer to future** — v0.3.0 dùng explicit commands thay vì SFG.
+
+### 13.6. Cấu trúc thư mục
+
+```
+src-vsix/
+  EfmlGen.Vsix.sln
+  EfmlGen.Vsix/
+    EfmlGen.Vsix.csproj          (legacy non-SDK csproj, net472)
+    source.extension.vsixmanifest
+    EfmlGenPackage.cs            (AsyncPackage entry point)
+    PackageGuids.cs              (4 GUID + command IDs)
+    Commands/
+      EfmlGenCommands.vsct
+      SmokeTestCommand.cs        (Tools menu → verify CLI bundle)
+      UpdateFromDbCommand.cs     (Solution Explorer right-click)
+      GenerateCodeCommand.cs     (Solution Explorer right-click + collision retry)
+      ShowToolWindowCommand.cs   (Tools menu)
+    Services/
+      CliLocator.cs              (resolve tools/cli/EfmlGen.Cli.exe)
+      CliRunner.cs               (Process spawn + async stdout/stderr stream)
+      OutputPaneLogger.cs        (Output pane "EfmlGen")
+      SelectionHelper.cs         (Solution Explorer item path resolver)
+      ProfileStore.cs            (LINK to src/EfmlGen.Wpf/Services/ProfileStore.cs)
+    ToolWindow/
+      EfmlGenToolWindow.cs       (ToolWindowPane)
+      EfmlGenToolWindowControl.xaml(.cs)
+      ToolWindowViewModel.cs
+      RelayCommand.cs
+    Wizard/
+      NewItemWizard.cs           (IWizard impl)
+      AddEfmlModelDialog.xaml(.cs)
+      Templates/EfmlGenEntityModel/
+        EfmlGenEntityModel.vstemplate
+        EntityModel.efml         (placeholder, overwritten by scaffold)
+        __TemplateIcon.png
+    Resources/
+      Logo.png, Icon.png         (linked from src/EfmlGen.Wpf/Assets/)
+    tools/cli/                   (publish drop — gitignored)
+```
+
+### 13.7. Build pipeline gotchas (đã giải quyết)
+
+- `Microsoft.CSharp.targets` phải import TRƯỚC `Microsoft.VsSDK.targets`; ngược lại `PrepareForRunDependsOn` bị clobber và `.vsix` không pack.
+- `TemplateOutputDirectory` phải set tay trước khi import VsSDK.targets (default eval về `""` khi parse vì `IntermediateOutputPath` chưa được Microsoft.Common.targets gán).
+- ItemTemplate zips chỉ vào `.vsix` khi `CopyZipOutputToOutputDirectory=true` + một custom Target dynamically thêm `<Content IncludeInVSIX>` sau khi `ZipItems` chạy.
+- VSTHRD analyzers: command handlers fire-and-forget qua `JoinableTaskFactory.RunAsync(...).FileAndForget("token")`.

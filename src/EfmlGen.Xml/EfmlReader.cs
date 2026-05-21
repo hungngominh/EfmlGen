@@ -36,7 +36,8 @@ public static class EfmlReader
             ContextNamespace = root.Attribute("context-namespace")?.Value ?? "",
             Namespace = root.Attribute("namespace")?.Value ?? "",
             Name = root.Attribute(P1 + "name")?.Value ?? "",
-            Guid = ParseGuid(root.Attribute(P1 + "Guid")?.Value)
+            Guid = ParseGuid(root.Attribute(P1 + "Guid")?.Value),
+            FileBaseName = root.Attribute(P1 + "FileBaseName")?.Value ?? ""
         };
 
         foreach (var classEl in root.Elements("class"))

@@ -45,18 +45,32 @@ public static class EfmlMerger
         if (!string.IsNullOrEmpty(existing.ContextNamespace)) fromDb.ContextNamespace = existing.ContextNamespace;
 
         var oldByKey = existing.Classes.ToDictionary(c => ClassKey(c), c => c, StringComparer.OrdinalIgnoreCase);
+        // Fallback index by unqualified table name. Legacy efml files often omit the
+        // schema attribute on <class> elements, or stamp "dbo" even on Postgres DBs where
+        // tables actually live in "public". Without this fallback the merger would treat
+        // every legacy class as Removed and every DB-derived class as Added, losing all
+        // Guid + custom-rename preservation.
+        var oldByTable = new Dictionary<string, EfClass>(StringComparer.OrdinalIgnoreCase);
+        foreach (var c in existing.Classes)
+        {
+            var tbl = Unquote(c.Table);
+            if (!oldByTable.ContainsKey(tbl)) oldByTable[tbl] = c;
+        }
         var newKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var matchedOldKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var newClass in fromDb.Classes)
         {
             var key = ClassKey(newClass);
             newKeys.Add(key);
 
-            if (!oldByKey.TryGetValue(key, out var oldClass))
+            if (!oldByKey.TryGetValue(key, out var oldClass)
+                && !oldByTable.TryGetValue(Unquote(newClass.Table), out oldClass))
             {
                 report.AddedClasses.Add(newClass.Name);
                 continue;
             }
+            matchedOldKeys.Add(ClassKey(oldClass));
 
             // Reuse class identity
             newClass.Guid = oldClass.Guid;
@@ -110,7 +124,8 @@ public static class EfmlMerger
 
         foreach (var oldKey in oldByKey.Keys)
         {
-            if (!newKeys.Contains(oldKey))
+            // A class is removed only if neither the full key nor the table-name fallback matched it.
+            if (!newKeys.Contains(oldKey) && !matchedOldKeys.Contains(oldKey))
                 report.RemovedClasses.Add(oldByKey[oldKey].Name + $" ({oldKey})");
         }
 

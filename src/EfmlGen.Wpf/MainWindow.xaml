@@ -253,6 +253,11 @@
                                             <TextBlock Text="Model name" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
                                             <TextBox x:Name="ModelNameBox"/>
 
+                                            <TextBlock Text="File base name (override; empty = use .efml filename)"
+                                                       Style="{StaticResource FieldLabel}" Margin="0,16,0,6"
+                                                       ToolTip="Prefix for generated .cs files. Leave empty unless the legacy efml filename differs from the model name."/>
+                                            <TextBox x:Name="FileBaseNameBox"/>
+
                                             <TextBlock Text="Namespace" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
                                             <TextBox x:Name="NamespaceBox"/>
 

@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MinimumVisualStudioVersion>17.0</MinimumVisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+  </PropertyGroup>
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+    <Platform Condition="'$(Platform)' == ''">AnyCPU</Platform>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{93B0F80D-3D8E-4DEB-B245-8AAC6DD0965A}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>EfmlGen.Vsix</RootNamespace>
+    <AssemblyName>EfmlGen.Vsix</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <GeneratePkgDefFile>true</GeneratePkgDefFile>
+    <UseCodebase>true</UseCodebase>
+    <IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
+    <IncludeDebugSymbolsInVSIXContainer>false</IncludeDebugSymbolsInVSIXContainer>
+    <IncludeDebugSymbolsInLocalVSIXDeployment>false</IncludeDebugSymbolsInLocalVSIXDeployment>
+    <CopyBuildOutputToOutputDirectory>true</CopyBuildOutputToOutputDirectory>
+    <CopyOutputSymbolsToOutputDirectory>true</CopyOutputSymbolsToOutputDirectory>
+    <StartAction>Program</StartAction>
+    <StartProgram Condition="'$(DevEnvDir)' != ''">$(DevEnvDir)devenv.exe</StartProgram>
+    <StartArguments>/rootsuffix Exp</StartArguments>
+    <LangVersion>latest</LangVersion>
+    <Nullable>annotations</Nullable>
+    <DeployExtension>true</DeployExtension>
+    <CreateVsixContainer>true</CreateVsixContainer>
+    <DeployVSTemplates>true</DeployVSTemplates>
+    <!--
+      Copy generated template zips into $(OutDir)\ItemTemplates\... so CreateVsixContainer
+      finds them when resolving the Microsoft.VisualStudio.ItemTemplate asset (Path="ItemTemplates").
+      Without this the zips only land in the Experimental Instance deployment folder and the
+      published .vsix has the Asset declared but the folder empty.
+    -->
+    <CopyZipOutputToOutputDirectory>true</CopyZipOutputToOutputDirectory>
+    <CopyVsixManifestToOutput>true</CopyVsixManifestToOutput>
+    <!--
+      Force-set TemplateOutputDirectory before VsSDK.targets import; otherwise its
+      default (= $(IntermediateOutputPath)) evaluates to empty at parse time and
+      the `createTemplateManifests` task fails with VSSDK1202.
+    -->
+    <TemplateOutputDirectory>$(MSBuildProjectDirectory)\obj\$(Configuration)\</TemplateOutputDirectory>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Design" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.VisualStudio.SDK">
+      <Version>17.0.32112.339</Version>
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.VSSDK.BuildTools">
+      <Version>17.7.2196</Version>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <!--
+      System.Text.Json on net472 (used by ProfileStore.cs shared-source link).
+      Need IncludeInVSIX=true on the DLL so VS finds it at runtime.
+    -->
+    <PackageReference Include="System.Text.Json" Version="8.0.5">
+      <IncludeAssets>all</IncludeAssets>
+    </PackageReference>
+    <!-- IWizard interface for New Item template. Not in the SDK metapackage. -->
+    <PackageReference Include="Microsoft.VisualStudio.TemplateWizardInterface" Version="17.0.32112.339" />
+    <!-- EnvDTE COM interop for ProjectItem manipulation in the wizard. -->
+    <PackageReference Include="EnvDTE" Version="17.0.32112.339" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="EfmlGenPackage.cs" />
+    <Compile Include="PackageGuids.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Services\CliLocator.cs" />
+    <Compile Include="Services\CliRunner.cs" />
+    <Compile Include="Services\OutputPaneLogger.cs" />
+    <Compile Include="Services\SelectionHelper.cs" />
+    <!--
+      Shared-source link to ProfileStore. Same file backs both the WPF GUI and this VSIX,
+      ensuring the encrypted profiles.json schema stays in sync. Net472-compatible:
+      uses only System.Text.Json + System.Security.Cryptography.ProtectedData.
+    -->
+    <Compile Include="..\..\src\EfmlGen.Wpf\Services\ProfileStore.cs">
+      <Link>Services\ProfileStore.cs</Link>
+    </Compile>
+    <Compile Include="Commands\SmokeTestCommand.cs" />
+    <Compile Include="Commands\UpdateFromDbCommand.cs" />
+    <Compile Include="Commands\GenerateCodeCommand.cs" />
+    <Compile Include="Commands\ShowToolWindowCommand.cs" />
+    <Compile Include="ToolWindow\EfmlGenToolWindow.cs" />
+    <Compile Include="ToolWindow\RelayCommand.cs" />
+    <Compile Include="ToolWindow\ToolWindowViewModel.cs" />
+    <Compile Include="ToolWindow\EfmlGenToolWindowControl.xaml.cs">
+      <DependentUpon>EfmlGenToolWindowControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Wizard\NewItemWizard.cs" />
+    <Compile Include="Wizard\AddEfmlModelDialog.xaml.cs">
+      <DependentUpon>AddEfmlModelDialog.xaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="ToolWindow\EfmlGenToolWindowControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Wizard\AddEfmlModelDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <!--
+      VSSDK packs this .vstemplate folder into a zip and exposes it under
+      "Add → New Item → Visual C# → Data → EfmlGen Entity Model".
+    -->
+    <VSTemplate Include="Wizard\Templates\EfmlGenEntityModel\EfmlGenEntityModel.vstemplate">
+      <!-- Language (CSharp) prefix is added automatically from <ProjectType> inside the .vstemplate. -->
+      <OutputSubPath>Data</OutputSubPath>
+    </VSTemplate>
+    <!--
+      Files that participate in the template zip alongside the .vstemplate.
+      MSBuild needs to know about them so GetVSTemplateItems picks them up;
+      None is the right item type (don't compile, don't include directly in VSIX —
+      ZipItems handles packing them into the template .zip).
+    -->
+    <None Include="Wizard\Templates\EfmlGenEntityModel\EntityModel.efml" />
+    <None Include="Wizard\Templates\EfmlGenEntityModel\__TemplateIcon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="source.extension.vsixmanifest">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <VSCTCompile Include="Commands\EfmlGenCommands.vsct">
+      <ResourceName>Menus.ctmenu</ResourceName>
+    </VSCTCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="VSPackage.resx">
+      <MergeWithCTO>true</MergeWithCTO>
+      <ManifestResourceName>VSPackage</ManifestResourceName>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\Logo.png">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Include="Resources\Icon.png">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+  </ItemGroup>
+
+  <!--
+    ===========================================================================================
+    Bundle EfmlGen.Cli.exe (self-contained, win-x64, single-file) into VSIX under tools\cli\.
+    Runs BEFORE VSIX item collection so the published output is picked up as Content.
+    Inputs/Outputs make this incremental: only republishes when CLI source files change.
+    ===========================================================================================
+  -->
+  <Target Name="PublishBundledCli"
+          BeforeTargets="GetVsixSourceItems;AssignTargetPaths"
+          Inputs="..\..\src\EfmlGen.Cli\**\*.cs;..\..\src\EfmlGen.Cli\*.csproj;..\..\src\EfmlGen.Core\**\*.cs;..\..\src\EfmlGen.Db\**\*.cs;..\..\src\EfmlGen.Templates\**\*.cs;..\..\src\EfmlGen.Xml\**\*.cs"
+          Outputs="tools\cli\EfmlGen.Cli.exe">
+    <Message Importance="high" Text="[EfmlGen.Vsix] Publishing bundled CLI (self-contained, win-x64, single-file)..." />
+    <Exec Command="dotnet publish &quot;$(MSBuildProjectDirectory)\..\..\src\EfmlGen.Cli\EfmlGen.Cli.csproj&quot; -c $(Configuration) -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false -o &quot;$(MSBuildProjectDirectory)\tools\cli&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Message Importance="high" Text="[EfmlGen.Vsix] Bundled CLI published to tools\cli\." />
+  </Target>
+
+  <!--
+    Add the published CLI binaries as Content items DYNAMICALLY after publish.
+    A static <ItemGroup> outside a target evaluates at parse time — if tools/cli was
+    cleaned, the glob is empty; if files exist from a stale build, items reference
+    paths that may be wiped before copy. Doing this inside a target after publish
+    avoids both races.
+  -->
+  <Target Name="AddBundledCliToVsixItems"
+          AfterTargets="PublishBundledCli"
+          BeforeTargets="GetVsixSourceItems">
+    <ItemGroup>
+      <Content Include="tools\cli\**\*.*">
+        <IncludeInVSIX>true</IncludeInVSIX>
+        <VSIXSubPath>tools\cli\%(RecursiveDir)</VSIXSubPath>
+        <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+  </Target>
+
+  <!-- Clean target: remove published CLI when rebuilding clean. -->
+  <Target Name="CleanBundledCli" AfterTargets="Clean">
+    <RemoveDir Directories="$(MSBuildProjectDirectory)\tools\cli" Condition="Exists('$(MSBuildProjectDirectory)\tools\cli')" />
+  </Target>
+
+  <!--
+    The VSSDK targets generate item template zips into $(OutDir)\ItemTemplates\... when
+    CopyZipOutputToOutputDirectory=true. The Asset element in vsixmanifest declares the
+    folder, but CreateVsixContainer doesn't physically include it unless we expose those
+    zips as VSIX content. Pull them in dynamically after ZipItems runs.
+  -->
+  <Target Name="IncludeTemplateZipsInVsix"
+          AfterTargets="ZipItems"
+          BeforeTargets="GetVsixSourceItems">
+    <ItemGroup>
+      <Content Include="$(OutDir)\ItemTemplates\**\*.zip">
+        <IncludeInVSIX>true</IncludeInVSIX>
+        <VSIXSubPath>ItemTemplates\%(RecursiveDir)</VSIXSubPath>
+        <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        <Link>ItemTemplates\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      </Content>
+    </ItemGroup>
+  </Target>
+
+  <!--
+    Order matters: Microsoft.CSharp.targets (via Microsoft.Common.targets) sets
+    PrepareForRunDependsOn first. Microsoft.VsSDK.targets THEN appends
+    CreateVsixContainer onto it. Reversing this order means the VSSDK additions
+    get clobbered and the .vsix never packs.
+  -->
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" Condition="'$(VSToolsPath)' != ''" />
+</Project>

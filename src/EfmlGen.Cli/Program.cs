@@ -87,6 +87,7 @@ public static class Program
               --diagram-name <s>      Diagram file suffix (default: Diagram1). Output: {model}.{diagram-name}.view
               --skip-view             Do not write the .view diagram layout file
               --force-datetime        Map DB datetime columns to System.DateTime even if provider would use DateTimeOffset
+              --file-base-name <s>    Stamp FileBaseName in efml (overrides filename when later generating .cs)
 
             gen-code options:
               --efml <path>                   Path to .efml file (required)
@@ -100,6 +101,7 @@ public static class Program
               --skip-view                     Do not generate .view diagram layout file
               --diagram-name <s>              Diagram file suffix (default: Diagram1)
               --timestamp <iso>               Override timestamp in file headers (for reproducible builds)
+              --file-base-name <s>            Override filename prefix for output .cs files (default: efml filename)
               --force                         Generate even if CollisionDetector finds errors
 
             db-smoke options:
@@ -186,6 +188,10 @@ internal static class GenCode
         Directory.CreateDirectory(outDir);
 
         var model = EfmlReader.ReadFile(efmlPath);
+        var fileBaseOverride = Optional(opts, "--file-base-name");
+        if (!string.IsNullOrEmpty(fileBaseOverride))
+            model.FileBaseName = fileBaseOverride!;
+        var fileBase = EfmlPathing.ResolveFileBaseName(model, efmlPath);
         var contextClass = Optional(opts, "--context-class") ?? $"{model.Name}DataContext";
 
         var warnings = CollisionDetector.Validate(model);
@@ -216,26 +222,26 @@ internal static class GenCode
         {
             var navs = navsByClass.TryGetValue(c.Name, out var n) ? n : new();
             var content = EntityEmitter.Emit(model, c, navs, ctx);
-            var path = Path.Combine(outDir, $"{model.Name}.{c.Name}.cs");
+            var path = Path.Combine(outDir, $"{fileBase}.{c.Name}.cs");
             FileIO.Write(path, content);
             written.Add(path);
         }
 
         var contextContent = ContextEmitter.Emit(model, ctx);
-        var contextPath = Path.Combine(outDir, $"{model.Name}.{model.Name}.cs");
+        var contextPath = Path.Combine(outDir, $"{fileBase}.{model.Name}.cs");
         FileIO.Write(contextPath, contextContent);
         written.Add(contextPath);
 
         if (!skipInfo)
         {
-            var infoPath = Path.Combine(outDir, $"{model.Name}.info");
+            var infoPath = Path.Combine(outDir, $"{fileBase}.info");
             FileIO.Write(infoPath, InfoEmitter.Content);
             written.Add(infoPath);
         }
 
         if (!skipView)
         {
-            var viewPath = Path.Combine(outDir, $"{model.Name}.{diagramName}.view");
+            var viewPath = Path.Combine(outDir, $"{fileBase}.{diagramName}.view");
             ViewWriter.WriteFile(model, viewPath, diagramName);
             written.Add(viewPath);
         }

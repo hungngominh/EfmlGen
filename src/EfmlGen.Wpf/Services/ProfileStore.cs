@@ -24,6 +24,14 @@ public sealed class ConnectionProfile
     public string Namespace { get; set; } = "";
     public string OutputDir { get; set; } = "";
     public string ContextClass { get; set; } = "";
+
+    /// <summary>Full path to the .efml file. Persists the user's chosen path so it's not
+    /// reconstructed from OutputDir + ModelName (which fails when filename differs from model name).</summary>
+    public string EfmlPath { get; set; } = "";
+
+    /// <summary>Optional override for the generated .cs filename prefix. Empty = derive
+    /// from EfmlPath filename. Set when the legacy efml filename differs from model name.</summary>
+    public string FileBaseName { get; set; } = "";
 }
 
 public sealed class AppSettings

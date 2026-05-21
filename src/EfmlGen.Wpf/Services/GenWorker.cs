@@ -37,7 +37,8 @@ public static class GenWorker
         string contextNamespace,
         string outEfmlPath,
         bool overwriteFresh,
-        bool forceDateTime = false)
+        bool forceDateTime = false,
+        string? fileBaseNameOverride = null)
     {
         Console.WriteLine($"Reading schema from DB (schemas: {string.Join(",", schemas)})...");
         var dbModel = DatabaseSchemaReader.Read(connectionString, provider, new SchemaReadOptions(Schemas: schemas));
@@ -71,15 +72,22 @@ public static class GenWorker
             var (merged, report) = EfmlMerger.Merge(model, existing);
             model = merged;
             mergeReport = report;
+            // Preserve any FileBaseName override stored in the existing efml.
+            if (string.IsNullOrEmpty(model.FileBaseName) && !string.IsNullOrEmpty(existing.FileBaseName))
+                model.FileBaseName = existing.FileBaseName;
         }
+
+        if (!string.IsNullOrEmpty(fileBaseNameOverride))
+            model.FileBaseName = fileBaseNameOverride!;
 
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outEfmlPath))!);
         EfmlWriter.WriteFile(model, outEfmlPath);
         Console.WriteLine($"Wrote {outEfmlPath}");
 
+        var fileBase = EfmlPathing.ResolveFileBaseName(model, outEfmlPath);
         var viewPath = Path.Combine(
             Path.GetDirectoryName(Path.GetFullPath(outEfmlPath))!,
-            $"{Path.GetFileNameWithoutExtension(outEfmlPath)}.Diagram1.view");
+            $"{fileBase}.Diagram1.view");
         ViewWriter.WriteFile(model, viewPath);
         Console.WriteLine($"Wrote {viewPath}");
 
@@ -102,13 +110,17 @@ public static class GenWorker
         bool skipDataContext,
         bool skipInfo,
         bool force,
-        DateTime? timestamp)
+        DateTime? timestamp,
+        string? fileBaseNameOverride = null)
     {
         if (!File.Exists(efmlPath))
             throw new FileNotFoundException($".efml file not found: {efmlPath}");
         Directory.CreateDirectory(outDir);
 
         var model = EfmlReader.ReadFile(efmlPath);
+        if (!string.IsNullOrEmpty(fileBaseNameOverride))
+            model.FileBaseName = fileBaseNameOverride!;
+        var fileBase = EfmlPathing.ResolveFileBaseName(model, efmlPath);
         var warnings = CollisionDetector.Validate(model);
         var hasError = warnings.Any(w => w.Severity == CollisionDetector.Severity.Error);
         if (hasError && !force)
@@ -132,22 +144,22 @@ public static class GenWorker
         {
             var navs = navsByClass.TryGetValue(c.Name, out var n) ? n : new();
             var content = EntityEmitter.Emit(model, c, navs, ctx);
-            var path = Path.Combine(outDir, $"{model.Name}.{c.Name}.cs");
+            var path = Path.Combine(outDir, $"{fileBase}.{c.Name}.cs");
             File.WriteAllText(path, content, Utf8Bom);
             written.Add(path);
         }
 
         var contextContent = ContextEmitter.Emit(model, ctx);
-        var contextPath = Path.Combine(outDir, $"{model.Name}.{model.Name}.cs");
+        var contextPath = Path.Combine(outDir, $"{fileBase}.{model.Name}.cs");
         File.WriteAllText(contextPath, contextContent, Utf8Bom);
         written.Add(contextPath);
 
-        // Sweep stale {Model}.{ClassName}.cs files where ClassName no longer exists in model.
+        // Sweep stale {fileBase}.{ClassName}.cs files where ClassName no longer exists in model.
         // Keep set: every class name in model + model.Name itself (context file).
         var keepNames = new HashSet<string>(model.Classes.Select(c => c.Name), StringComparer.Ordinal) { model.Name };
-        var prefix = model.Name + ".";
+        var prefix = fileBase + ".";
         var deleted = new List<string>();
-        foreach (var existing in Directory.EnumerateFiles(outDir, $"{model.Name}.*.cs"))
+        foreach (var existing in Directory.EnumerateFiles(outDir, $"{fileBase}.*.cs"))
         {
             var nameNoExt = Path.GetFileNameWithoutExtension(existing);
             if (!nameNoExt.StartsWith(prefix, StringComparison.Ordinal)) continue;
@@ -166,12 +178,12 @@ public static class GenWorker
 
         if (!skipInfo)
         {
-            var infoPath = Path.Combine(outDir, $"{model.Name}.info");
+            var infoPath = Path.Combine(outDir, $"{fileBase}.info");
             File.WriteAllText(infoPath, InfoEmitter.Content, Utf8Bom);
             written.Add(infoPath);
         }
 
-        var viewPath = Path.Combine(outDir, $"{model.Name}.Diagram1.view");
+        var viewPath = Path.Combine(outDir, $"{fileBase}.Diagram1.view");
         ViewWriter.WriteFile(model, viewPath);
         written.Add(viewPath);
 

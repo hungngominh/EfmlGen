@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Placeholder .efml. NewItemWizard runs `scaffold-efml --out <this file>` after VS
+  drops this stub on disk, overwriting it with the real scaffolded XML from the DB.
+  If you see this file with this content, the wizard didn't run — check that
+  EfmlGen.Vsix is installed and a connection profile is saved.
+-->
+<Model />

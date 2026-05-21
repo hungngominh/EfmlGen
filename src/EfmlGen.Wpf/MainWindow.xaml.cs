@@ -151,10 +151,17 @@ public partial class MainWindow : Window
         PasswordBox.Password = ProfileStore.DecryptPassword(p.EncryptedPassword);
         SchemasBox.Text = p.Schemas;
         ModelNameBox.Text = p.ModelName;
+        FileBaseNameBox.Text = p.FileBaseName;
         NamespaceBox.Text = p.Namespace;
         OutputDirBox.Text = p.OutputDir;
-        EfmlPathBox.Text = !string.IsNullOrEmpty(p.OutputDir) && !string.IsNullOrEmpty(p.ModelName)
-            ? Path.Combine(p.OutputDir, p.ModelName + ".efml") : "";
+        // Prefer the explicit EfmlPath stored in the profile — it preserves the actual file
+        // chosen on import, including cases where the filename differs from ModelName.
+        // Fall back to the legacy compose-from-OutputDir-and-ModelName behavior only when the
+        // profile predates the EfmlPath field.
+        EfmlPathBox.Text = !string.IsNullOrEmpty(p.EfmlPath)
+            ? p.EfmlPath
+            : (!string.IsNullOrEmpty(p.OutputDir) && !string.IsNullOrEmpty(p.ModelName)
+                ? Path.Combine(p.OutputDir, p.ModelName + ".efml") : "");
         GenEfmlPathBox.Text = EfmlPathBox.Text;
         ContextClassBox.Text = p.ContextClass;
     }
@@ -218,7 +225,9 @@ public partial class MainWindow : Window
             ModelName = ModelNameBox.Text.Trim(),
             Namespace = NamespaceBox.Text.Trim(),
             OutputDir = OutputDirBox.Text.Trim(),
-            ContextClass = ContextClassBox.Text.Trim()
+            ContextClass = ContextClassBox.Text.Trim(),
+            EfmlPath = EfmlPathBox.Text.Trim(),
+            FileBaseName = FileBaseNameBox.Text.Trim()
         };
     }
 
@@ -286,6 +295,15 @@ public partial class MainWindow : Window
             ? Path.GetFileNameWithoutExtension(path)
             : model.Name;
 
+        // Compute filename base from the .efml path. When this differs from model.Name
+        // (legacy case — e.g. ExternalChecklistDataModel.efml vs p1:name="ExternalChecklistEntities"),
+        // surface it as an explicit FileBaseName override so generated .cs filenames match
+        // the original Entity Developer output. If the efml already has FileBaseName, use it.
+        var pathBase = Path.GetFileNameWithoutExtension(path);
+        var fileBaseName = !string.IsNullOrEmpty(model.FileBaseName)
+            ? model.FileBaseName
+            : (!string.Equals(pathBase, model.Name, StringComparison.Ordinal) ? pathBase : "");
+
         var profile = new ConnectionProfile
         {
             Name = profileName,
@@ -295,7 +313,9 @@ public partial class MainWindow : Window
             ModelName = model.Name,
             Namespace = model.Namespace,
             OutputDir = outDir,
-            ContextClass = string.IsNullOrEmpty(model.Name) ? "" : model.Name + "DataContext"
+            ContextClass = string.IsNullOrEmpty(model.Name) ? "" : model.Name + "DataContext",
+            EfmlPath = path,
+            FileBaseName = fileBaseName
         };
 
         LoadProfileIntoForm(profile);
@@ -362,14 +382,23 @@ public partial class MainWindow : Window
             var schemas = profile.Schemas.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray();
             var dbModel = GenWorker.ReadSchema(connStr, dbProvider, schemas);
 
-            var preselect = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var preselectFull = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var preselectTableOnly = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             if (!string.IsNullOrEmpty(efmlPath) && File.Exists(efmlPath))
             {
                 try
                 {
                     var existing = EfmlReader.ReadFile(efmlPath);
                     foreach (var c in existing.Classes)
-                        preselect.Add(TableKey(c.Schema, UnquoteTable(c.Table)));
+                    {
+                        var tbl = UnquoteTable(c.Table);
+                        preselectFull.Add(TableKey(c.Schema, tbl));
+                        // Legacy efml files store schema only on the root <efcore>, leaving
+                        // <class> elements with no schema. Also Devart often stamps schema="dbo"
+                        // even when the DB schema is "public" (Postgres). Fall back to
+                        // matching by unqualified table name so these still preselect.
+                        preselectTableOnly.Add(tbl);
+                    }
                     Console.WriteLine($"Found existing efml with {existing.Classes.Count} classes — will pre-select matching tables.");
                 }
                 catch (Exception ex)
@@ -383,7 +412,8 @@ public partial class MainWindow : Window
                 .Select(t =>
                 {
                     var it = new TableItem(t.Schema ?? "", t.Name, t.Columns.Count, t.ForeignKeys.Count);
-                    if (preselect.Contains(TableKey(t.Schema ?? "", t.Name)))
+                    if (preselectFull.Contains(TableKey(t.Schema ?? "", t.Name))
+                        || preselectTableOnly.Contains(t.Name))
                         it.IsSelected = true;
                     return it;
                 })
@@ -463,7 +493,43 @@ public partial class MainWindow : Window
             EfmlPathBox.Text = dlg.FileName;
             GenEfmlPathBox.Text = dlg.FileName;
             OutputDirBox.Text = Path.GetDirectoryName(dlg.FileName) ?? "";
+            // If the user picked an existing .efml, treat it as Import: auto-fill model name,
+            // namespace, file base name and context class from the file so they don't have
+            // to retype things that the file already knows.
+            if (File.Exists(dlg.FileName))
+                TryImportEfmlMetadata(dlg.FileName);
         }
+    }
+
+    /// <summary>
+    /// Read an existing .efml and update form fields derived from it (model name, namespace,
+    /// file base name, context class). Does NOT touch connection details (Host/Port/Username/
+    /// Password) or profile name. Safe to call after Browse picks an existing file.
+    /// </summary>
+    private void TryImportEfmlMetadata(string path)
+    {
+        EfmlModel model;
+        try { model = EfmlReader.ReadFile(path); }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[warn] Picked existing .efml but failed to read it ({ex.Message}); leaving form fields untouched.");
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(model.Name)) ModelNameBox.Text = model.Name;
+        if (!string.IsNullOrEmpty(model.Namespace)) NamespaceBox.Text = model.Namespace;
+        if (string.IsNullOrEmpty(ContextClassBox.Text) && !string.IsNullOrEmpty(model.Name))
+            ContextClassBox.Text = model.Name + "DataContext";
+
+        var pathBase = Path.GetFileNameWithoutExtension(path);
+        var fileBaseName = !string.IsNullOrEmpty(model.FileBaseName)
+            ? model.FileBaseName
+            : (!string.Equals(pathBase, model.Name, StringComparison.Ordinal) ? pathBase : "");
+        FileBaseNameBox.Text = fileBaseName;
+
+        Console.WriteLine($"Loaded metadata from existing {path}");
+        Console.WriteLine($"  Name={model.Name}, Namespace={model.Namespace}, Classes={model.Classes.Count}");
+        SetStatus($"Loaded model from existing .efml ({model.Classes.Count} classes).");
     }
 
     private async void Scaffold_Click(object sender, RoutedEventArgs e)
@@ -481,6 +547,7 @@ public partial class MainWindow : Window
         var modelName = ModelNameBox.Text.Trim();
         var ns = NamespaceBox.Text.Trim();
         var efmlPath = EfmlPathBox.Text.Trim();
+        var fileBaseOverride = FileBaseNameBox.Text.Trim();
         var overwrite = OverwriteChk.IsChecked == true;
         var forceDateTime = ForceDateTimeChk.IsChecked == true;
 
@@ -494,7 +561,8 @@ public partial class MainWindow : Window
         await RunAsync($"Scaffolding {selectedTables.Length} tables...", () =>
         {
             var schemas = profile.Schemas.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray();
-            var result = GenWorker.Scaffold(connStr, dbProvider, schemas, selectedTables, modelName, ns, ns, efmlPath, overwrite, forceDateTime);
+            var result = GenWorker.Scaffold(connStr, dbProvider, schemas, selectedTables, modelName, ns, ns, efmlPath, overwrite, forceDateTime,
+                fileBaseNameOverride: string.IsNullOrEmpty(fileBaseOverride) ? null : fileBaseOverride);
             PrintMergeReport(result.MergeReport);
             PrintWarnings(result.Warnings);
 
@@ -519,8 +587,13 @@ public partial class MainWindow : Window
         if (dlg.ShowDialog(this) == true)
         {
             GenEfmlPathBox.Text = dlg.FileName;
+            EfmlPathBox.Text = dlg.FileName;
             if (string.IsNullOrEmpty(OutputDirBox.Text))
                 OutputDirBox.Text = Path.GetDirectoryName(dlg.FileName) ?? "";
+            // Picking an existing .efml here means the user wants to generate code for it —
+            // load model name / namespace / file base name so the Gen Code step has what it needs.
+            if (File.Exists(dlg.FileName))
+                TryImportEfmlMetadata(dlg.FileName);
         }
     }
 
@@ -560,6 +633,7 @@ public partial class MainWindow : Window
         var skipInfo = SkipInfoChk.IsChecked == true;
         var force = ForceChk.IsChecked == true;
         var contextClassLocal = contextClass;
+        var fileBaseOverride = FileBaseNameBox.Text.Trim();
 
         await RunAsync("Generating .cs files...", () =>
         {
@@ -570,7 +644,8 @@ public partial class MainWindow : Window
                 skipDataContext: skipDataContext,
                 skipInfo: skipInfo,
                 force: force,
-                timestamp: null);
+                timestamp: null,
+                fileBaseNameOverride: string.IsNullOrEmpty(fileBaseOverride) ? null : fileBaseOverride);
 
             PrintWarnings(result.Warnings);
             if (result.DeletedFiles.Count > 0)

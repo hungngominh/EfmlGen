@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <Extern href="stdidcmd.h" />
+  <Extern href="vsshlids.h" />
+
+  <Commands package="guidEfmlGenPackage">
+
+    <Groups>
+      <!-- Group attached to Solution Explorer item right-click context menu. -->
+      <Group guid="guidEfmlGenCmdSet" id="EfmlGenItemCtxGroup" priority="0x0600">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_ITEMNODE" />
+      </Group>
+      <!-- Group attached to top-level Tools menu. -->
+      <Group guid="guidEfmlGenCmdSet" id="EfmlGenToolsMenuGroup" priority="0x0600">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_TOOLS" />
+      </Group>
+    </Groups>
+
+    <Buttons>
+      <!-- Solution Explorer: .efml file context commands. Visibility filtered in BeforeQueryStatus. -->
+      <Button guid="guidEfmlGenCmdSet" id="cmdidUpdateFromDb" priority="0x0100" type="Button">
+        <Parent guid="guidEfmlGenCmdSet" id="EfmlGenItemCtxGroup" />
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <Strings>
+          <ButtonText>EfmlGen: Update Model from Database…</ButtonText>
+        </Strings>
+      </Button>
+      <Button guid="guidEfmlGenCmdSet" id="cmdidGenerateCode" priority="0x0101" type="Button">
+        <Parent guid="guidEfmlGenCmdSet" id="EfmlGenItemCtxGroup" />
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <Strings>
+          <ButtonText>EfmlGen: Generate Code</ButtonText>
+        </Strings>
+      </Button>
+
+      <!-- Tools menu: tool window opener + smoke test. -->
+      <Button guid="guidEfmlGenCmdSet" id="cmdidShowToolWindow" priority="0x0100" type="Button">
+        <Parent guid="guidEfmlGenCmdSet" id="EfmlGenToolsMenuGroup" />
+        <Strings>
+          <ButtonText>EfmlGen Tool Window</ButtonText>
+        </Strings>
+      </Button>
+      <Button guid="guidEfmlGenCmdSet" id="cmdidSmokeTest" priority="0x0200" type="Button">
+        <Parent guid="guidEfmlGenCmdSet" id="EfmlGenToolsMenuGroup" />
+        <Strings>
+          <ButtonText>EfmlGen: Smoke Test (db-smoke --help)</ButtonText>
+        </Strings>
+      </Button>
+    </Buttons>
+
+  </Commands>
+
+  <Symbols>
+    <GuidSymbol name="guidEfmlGenPackage" value="{bf990f5e-756c-4eab-a401-18dddfbf8cb2}" />
+
+    <GuidSymbol name="guidEfmlGenCmdSet" value="{7e832c82-48bc-464b-b0e4-523f5229965d}">
+      <!-- Groups -->
+      <IDSymbol name="EfmlGenItemCtxGroup" value="0x1020" />
+      <IDSymbol name="EfmlGenToolsMenuGroup" value="0x1021" />
+      <!-- Commands — values must match PackageGuids.CmdId* -->
+      <IDSymbol name="cmdidUpdateFromDb" value="0x0100" />
+      <IDSymbol name="cmdidGenerateCode" value="0x0101" />
+      <IDSymbol name="cmdidShowToolWindow" value="0x0102" />
+      <IDSymbol name="cmdidSmokeTest" value="0x0103" />
+    </GuidSymbol>
+  </Symbols>
+
+</CommandTable>

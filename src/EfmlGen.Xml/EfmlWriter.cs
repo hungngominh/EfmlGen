@@ -39,6 +39,9 @@ public static class EfmlWriter
             new XAttribute(P1 + "name", model.Name),
             new XAttribute(P1 + "Guid", model.Guid));
 
+        if (!string.IsNullOrEmpty(model.FileBaseName))
+            root.Add(new XAttribute(P1 + "FileBaseName", model.FileBaseName));
+
         foreach (var c in model.Classes)
             root.Add(WriteClass(c));
 

@@ -1,6 +1,12 @@
 # EfmlGen — Hướng dẫn sử dụng
 
-Tool **EfmlGen** thay thế workflow của Devart Entity Developer: đọc schema database → sinh file `.efml` → sinh file C# entity + DbContext cho EF Core. Mã nguồn mở, ưu tiên dùng qua CLI, có thêm GUI WPF cho thao tác nhanh.
+Tool **EfmlGen** thay thế workflow của Devart Entity Developer: đọc schema database → sinh file `.efml` → sinh file C# entity + DbContext cho EF Core. Mã nguồn mở; ba cách dùng song song:
+
+- **CLI** (`EfmlGen.Cli.exe`) — script, CI, headless.
+- **WPF GUI** (`EfmlGen.Designer.exe`) — desktop app trên Windows.
+- **Visual Studio 2022 extension** (`EfmlGen.Vsix.vsix`) — tích hợp Solution Explorer + Tool Window + Add New Item Wizard. Xem [src-vsix/](src-vsix/).
+
+Lịch sử thay đổi: [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -8,9 +14,10 @@ Tool **EfmlGen** thay thế workflow của Devart Entity Developer: đọc schem
 
 | Thành phần | Phiên bản |
 |---|---|
-| .NET SDK | 8.0 trở lên |
-| OS | Windows (WPF GUI) / Linux / macOS (chỉ CLI) |
+| .NET SDK | 8.0 trở lên (build từ source) |
+| OS | Windows (WPF + VSIX) / Linux / macOS (chỉ CLI) |
 | Database | PostgreSQL · SQL Server |
+| Visual Studio | 2022 (17.0+) — chỉ khi dùng VSIX |
 
 ---
 
@@ -195,7 +202,30 @@ Profile file ở vị trí khác: `--profile-file path/to/profiles.json`.
 
 ---
 
-## 6. File đầu ra
+## 6. Sử dụng Visual Studio 2022 extension (VSIX)
+
+Cài đặt: double-click `EfmlGen.Vsix.vsix` từ release. VS 2022 (Community/Pro/Enterprise, 17.0+) sẽ load extension. VSIX bundle sẵn `EfmlGen.Cli.exe` self-contained nên không cần cài CLI riêng.
+
+Ba điểm tích hợp:
+
+1. **Tool Window** — `View → Other Windows → EfmlGen` (hoặc `Tools → EfmlGen Tool Window`). Panel kết nối + scaffold + generate; chia sẻ `profiles.json` với WPF GUI nên profile bạn save bên này nhìn thấy bên kia (cùng user, cùng máy do DPAPI).
+2. **Right-click `.efml` trong Solution Explorer**:
+   - `EfmlGen: Update Model from Database…` — chạy `scaffold-efml` với profile last-used (merge giữ `p1:Guid` + rename tay).
+   - `EfmlGen: Generate Code` — chạy `gen-code`. Khi gặp collision (exit 3) hỏi rerun `--force` qua MessageBox.
+3. **`Add → New Item → Visual C# → Data → EfmlGen Entity Model`** — wizard hỏi profile + model name + namespace + table filter; scaffold xong tự thêm `.efml` vào project.
+
+Log realtime ở `Output → EfmlGen` pane.
+
+Workflow điển hình:
+1. Mở Tool Window, nhập connection, `Save Profile` (lần đầu).
+2. `Add → New Item → EfmlGen Entity Model` (lần đầu) hoặc right-click `.efml` có sẵn → `Update Model from Database…` (lần sau).
+3. Right-click `.efml` → `Generate Code` để sinh/refresh `.cs`.
+
+Build VSIX từ source: xem [src-vsix/README.md](src-vsix/README.md).
+
+---
+
+## 7. File đầu ra
 
 Với model tên `CategoryEntities`, sau khi gen, thư mục output sẽ có:
 
@@ -222,7 +252,7 @@ Với model tên `CategoryEntities`, sau khi gen, thư mục output sẽ có:
 
 ---
 
-## 7. Tham khảo nhanh — workflow thông dụng
+## 8. Tham khảo nhanh — workflow thông dụng
 
 ### 7.1. PostgreSQL
 
@@ -281,7 +311,7 @@ Lưu ý sự khác biệt giữa `--provider` của hai lệnh:
 
 ---
 
-## 8. Mẫu tham khảo
+## 9. Mẫu tham khảo
 
 - [samples/categories-postgres/](samples/categories-postgres/) — model sinh từ **PostgreSQL** (7 bảng + 1 association).
 - [samples/categories-sqlserver/](samples/categories-sqlserver/) — cùng schema trên **SQL Server**: kèm `setup.sql` để tạo DB từ đầu, đối chiếu type mapping PG ↔ MSSQL trong README của sample.
@@ -290,7 +320,7 @@ Tài liệu thiết kế chi tiết (kiến trúc, format `.efml`, quy tắc mer
 
 ---
 
-## 9. Mã exit code
+## 10. Mã exit code
 
 | Code | Ý nghĩa |
 |---|---|
@@ -301,7 +331,7 @@ Tài liệu thiết kế chi tiết (kiến trúc, format `.efml`, quy tắc mer
 
 ---
 
-## 10. Khắc phục sự cố
+## 11. Khắc phục sự cố
 
 | Triệu chứng | Nguyên nhân | Cách xử lý |
 |---|---|---|
