@@ -52,6 +52,9 @@ public static class TypeMap
         ["Byte"] = EfType.Byte,
         ["Guid"] = EfType.Guid,
         ["Blob"] = EfType.Blob,
+        ["VarBinary"] = EfType.Blob,
+        ["Clob"] = EfType.String,
+        ["Time"] = EfType.TimeSpan,
     };
 
     public static EfType Parse(string s) =>

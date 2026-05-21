@@ -56,6 +56,7 @@ public sealed class EfProperty
     public bool ValidateRequired { get; set; }
     public int? ValidateMaxLength { get; set; }
     public Guid Guid { get; set; }
+    public bool IsConcurrencyToken { get; set; }
     public EfColumn Column { get; set; } = new();
 }
 

@@ -70,10 +70,13 @@ public static class EfmlReader
         foreach (var pEl in el.Elements("property"))
             c.Properties.Add(ReadProperty(pEl));
 
+        foreach (var cEl in el.Elements("concurrency"))
+            c.Properties.Add(ReadProperty(cEl, isConcurrencyToken: true));
+
         return c;
     }
 
-    private static EfProperty ReadProperty(XElement el)
+    private static EfProperty ReadProperty(XElement el, bool isConcurrencyToken = false)
     {
         var p = new EfProperty
         {
@@ -83,7 +86,8 @@ public static class EfmlReader
             ValueGenerated = el.Attribute("value-generated")?.Value,
             ValidateRequired = ParseBool(el.Attribute(P1 + "ValidateRequired")?.Value),
             ValidateMaxLength = ParseIntNullable(el.Attribute(P1 + "ValidateMaxLength")?.Value),
-            Guid = ParseGuid(el.Attribute(P1 + "Guid")?.Value)
+            Guid = ParseGuid(el.Attribute(P1 + "Guid")?.Value),
+            IsConcurrencyToken = isConcurrencyToken
         };
 
         var col = el.Element("column");

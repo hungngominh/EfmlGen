@@ -68,7 +68,7 @@ public static class EfmlWriter
         if (c.Id != null!)
             el.Add(WriteProperty("id", c.Id));
         foreach (var p in c.Properties)
-            el.Add(WriteProperty("property", p));
+            el.Add(WriteProperty(p.IsConcurrencyToken ? "concurrency" : "property", p));
 
         return el;
     }

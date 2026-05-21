@@ -150,8 +150,13 @@ public static class ContextEmitter
 
         if (p.ValueGenerated == "OnAdd")
             sb.Append(".ValueGeneratedOnAdd()");
+        else if (p.ValueGenerated == "OnAddOrUpdate")
+            sb.Append(".ValueGeneratedOnAddOrUpdate()");
         else
             sb.Append(".ValueGeneratedNever()");
+
+        if (p.IsConcurrencyToken)
+            sb.Append(".IsConcurrencyToken()");
 
         if (p.Column.Length.HasValue)
             sb.Append(".HasMaxLength(").Append(p.Column.Length.Value.ToString(CultureInfo.InvariantCulture)).Append(")");
