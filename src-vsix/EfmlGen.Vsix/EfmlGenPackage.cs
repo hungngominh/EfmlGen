@@ -24,6 +24,8 @@ namespace EfmlGen.Vsix
     public sealed class EfmlGenPackage : AsyncPackage
     {
         internal OutputPaneLogger Log { get; private set; }
+        // Keep alive — EnvDTE event sinks unhook themselves once GC'd.
+        private EfmlDocumentWatcher _documentWatcher;
 
         protected override async Task InitializeAsync(
             CancellationToken cancellationToken,
@@ -38,6 +40,7 @@ namespace EfmlGen.Vsix
             await UpdateFromDbCommand.RegisterAsync(this, Log);
             await GenerateCodeCommand.RegisterAsync(this, Log);
             await ShowToolWindowCommand.RegisterAsync(this, Log);
+            _documentWatcher = await EfmlDocumentWatcher.RegisterAsync(this, Log);
         }
     }
 }

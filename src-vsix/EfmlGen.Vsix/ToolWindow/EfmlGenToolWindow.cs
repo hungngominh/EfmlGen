@@ -21,8 +21,15 @@ namespace EfmlGen.Vsix.ToolWindow
         internal void Initialize(OutputPaneLogger log)
         {
             var control = (EfmlGenToolWindowControl)Content;
+            if (control.ViewModel != null) return;
             var vm = new ToolWindowViewModel(log);
             control.Initialize(vm);
+        }
+
+        internal void LoadEfml(string efmlPath)
+        {
+            var control = (EfmlGenToolWindowControl)Content;
+            control.ViewModel?.LoadOrCreateProfileForEfml(efmlPath);
         }
     }
 }

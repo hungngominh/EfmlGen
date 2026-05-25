@@ -131,6 +131,61 @@ namespace EfmlGen.Vsix.ToolWindow
             ContextClass = p.ContextClass;
         }
 
+        public void LoadOrCreateProfileForEfml(string efmlPath)
+        {
+            if (string.IsNullOrWhiteSpace(efmlPath)) return;
+            string normalized;
+            try { normalized = Path.GetFullPath(efmlPath); }
+            catch { normalized = efmlPath; }
+
+            var settings = ProfileStore.Load();
+            var match = settings.Profiles.FirstOrDefault(p =>
+                !string.IsNullOrEmpty(p.EfmlPath) &&
+                string.Equals(SafeFullPath(p.EfmlPath), normalized, StringComparison.OrdinalIgnoreCase));
+
+            if (match != null)
+            {
+                if (!Profiles.Contains(match.Name)) RefreshProfiles();
+                SelectedProfileName = match.Name;
+                Append($"[info] Loaded profile '{match.Name}' for {normalized}.");
+                return;
+            }
+
+            var baseName = Path.GetFileNameWithoutExtension(normalized);
+            var newName = MakeUniqueProfileName(baseName, settings);
+            var dir = Path.GetDirectoryName(normalized) ?? "";
+            settings.Profiles.Add(new ConnectionProfile
+            {
+                Name = newName,
+                EfmlPath = normalized,
+                OutputDir = dir,
+                ModelName = baseName,
+            });
+            settings.LastUsedProfileName = newName;
+            ProfileStore.Save(settings);
+            RefreshProfiles();
+            SelectedProfileName = newName;
+            Append($"[info] Created new profile '{newName}' for {normalized}. Fill in connection details and Save Profile.");
+        }
+
+        private static string SafeFullPath(string p)
+        {
+            try { return Path.GetFullPath(p); }
+            catch { return p; }
+        }
+
+        private static string MakeUniqueProfileName(string baseName, AppSettings settings)
+        {
+            if (string.IsNullOrWhiteSpace(baseName)) baseName = "Profile";
+            if (settings.Profiles.All(p => p.Name != baseName)) return baseName;
+            for (int i = 2; i < 1000; i++)
+            {
+                var candidate = $"{baseName} ({i})";
+                if (settings.Profiles.All(p => p.Name != candidate)) return candidate;
+            }
+            return baseName + "_" + Guid.NewGuid().ToString("N").Substring(0, 6);
+        }
+
         private void SaveProfile()
         {
             if (string.IsNullOrWhiteSpace(SelectedProfileName))

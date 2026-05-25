@@ -104,6 +104,7 @@
     <Compile Include="Services\CliRunner.cs" />
     <Compile Include="Services\OutputPaneLogger.cs" />
     <Compile Include="Services\SelectionHelper.cs" />
+    <Compile Include="Services\EfmlDocumentWatcher.cs" />
     <!--
       Shared-source link to ProfileStore. Same file backs both the WPF GUI and this VSIX,
       ensuring the encrypted profiles.json schema stays in sync. Net472-compatible:
@@ -129,6 +130,10 @@
   </ItemGroup>
   <ItemGroup>
     <Page Include="ToolWindow\EfmlGenToolWindowControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="ToolWindow\EfmlGenTheme.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

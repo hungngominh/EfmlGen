@@ -198,7 +198,8 @@ public static class ContextEmitter
               .Append(").HasForeignKey(@\"").Append(fkProperty)
               .Append("\").IsRequired(").Append(isRequiredStr).Append(");\r\n");
 
-            sb.Append("            modelBuilder.Entity<").Append(end1ClassRef)
+            var end2ClassRef = CsKeywords.Escape(a.End2.ClassName);
+            sb.Append("            modelBuilder.Entity<").Append(end2ClassRef)
               .Append(">().HasOne(x => x.").Append(end1NavRef)
               .Append(").WithMany(op => op.").Append(end2NavRef)
               .Append(").HasForeignKey(@\"").Append(fkProperty)

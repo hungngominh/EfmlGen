@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<TableItem> _filteredTables = new();
 
     private bool _suppressProfileFilter;
+    private readonly string? _initialEfmlPath;
 
     private static readonly string AppVersion =
         System.Reflection.Assembly.GetExecutingAssembly()
@@ -31,8 +32,11 @@ public partial class MainWindow : Window
             ? $"v{v.Major}.{v.Minor}.{v.Build}"
             : "";
 
-    public MainWindow()
+    public MainWindow() : this(null) { }
+
+    public MainWindow(string? initialEfmlPath)
     {
+        _initialEfmlPath = initialEfmlPath;
         InitializeComponent();
 
         Console.SetOut(new CallbackTextWriter(line =>
@@ -47,8 +51,77 @@ public partial class MainWindow : Window
         Loaded += (_, _) =>
         {
             LoadProfiles();
+            if (!string.IsNullOrWhiteSpace(_initialEfmlPath))
+            {
+                LoadOrCreateProfileForEfml(_initialEfmlPath!);
+            }
             SetStatus("Ready", busy: false);
         };
+    }
+
+    /// <summary>
+    /// Match an existing profile by <see cref="ConnectionProfile.EfmlPath"/> (case-insensitive
+    /// full-path compare) and load it into the form. If none matches, create and persist a new
+    /// profile bound to this file (Name = file basename, OutputDir = file dir, ModelName = basename).
+    /// </summary>
+    private void LoadOrCreateProfileForEfml(string efmlPath)
+    {
+        string normalized;
+        try { normalized = Path.GetFullPath(efmlPath); }
+        catch { normalized = efmlPath; }
+
+        var match = _settings.Profiles.FirstOrDefault(p =>
+            !string.IsNullOrEmpty(p.EfmlPath) &&
+            string.Equals(SafeFullPath(p.EfmlPath), normalized, StringComparison.OrdinalIgnoreCase));
+
+        if (match != null)
+        {
+            _settings.LastUsedProfileName = match.Name;
+            ProfileStore.Save(_settings);
+            RefreshProfileCombo();
+            ProfileCombo.SelectedItem = match.Name;
+            LoadProfileIntoForm(match);
+            Console.WriteLine($"Loaded profile '{match.Name}' for {normalized}.");
+            SetStatus($"Loaded profile '{match.Name}'.");
+            return;
+        }
+
+        var baseName = Path.GetFileNameWithoutExtension(normalized);
+        var newName = MakeUniqueProfileName(baseName, _settings);
+        var dir = Path.GetDirectoryName(normalized) ?? "";
+        var profile = new ConnectionProfile
+        {
+            Name = newName,
+            EfmlPath = normalized,
+            OutputDir = dir,
+            ModelName = baseName,
+        };
+        _settings.Profiles.Add(profile);
+        _settings.LastUsedProfileName = newName;
+        ProfileStore.Save(_settings);
+        RefreshProfileCombo();
+        ProfileCombo.SelectedItem = newName;
+        LoadProfileIntoForm(profile);
+        Console.WriteLine($"Created new profile '{newName}' for {normalized}. Fill in connection details and Save Profile.");
+        SetStatus($"Created profile '{newName}' — fill in connection details.");
+    }
+
+    private static string SafeFullPath(string p)
+    {
+        try { return Path.GetFullPath(p); }
+        catch { return p; }
+    }
+
+    private static string MakeUniqueProfileName(string baseName, AppSettings settings)
+    {
+        if (string.IsNullOrWhiteSpace(baseName)) baseName = "Profile";
+        if (settings.Profiles.All(p => p.Name != baseName)) return baseName;
+        for (int i = 2; i < 1000; i++)
+        {
+            var candidate = $"{baseName} ({i})";
+            if (settings.Profiles.All(p => p.Name != candidate)) return candidate;
+        }
+        return baseName + "_" + Guid.NewGuid().ToString("N").Substring(0, 6);
     }
 
     private void ProfileCombo_TextChanged(object sender, TextChangedEventArgs e)

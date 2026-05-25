@@ -1,140 +1,335 @@
 <UserControl x:Class="EfmlGen.Vsix.ToolWindow.EfmlGenToolWindowControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vsui="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
-             xmlns:vsshell="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
-             Background="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowBackgroundKey}}"
-             Foreground="{DynamicResource {x:Static vsshell:VsBrushes.ToolWindowTextKey}}"
+             FontFamily="Segoe UI" FontSize="12"
              mc:Ignorable="d"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             d:DesignHeight="700" d:DesignWidth="420">
+             d:DesignHeight="800" d:DesignWidth="420">
     <UserControl.Resources>
-        <Style TargetType="TextBlock" x:Key="FieldLabel">
-            <Setter Property="Margin" Value="0,8,0,2"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-        </Style>
-        <Style TargetType="TextBox">
-            <Setter Property="Padding" Value="4,3"/>
-        </Style>
-        <Style TargetType="Button">
-            <Setter Property="Padding" Value="10,4"/>
-            <Setter Property="Margin" Value="0,0,6,6"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/EfmlGen.Vsix;component/ToolWindow/EfmlGenTheme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
+    <Grid Background="{StaticResource BgPage}">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="200"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Padding="10">
-            <StackPanel>
-                <TextBlock Text="Profile" Style="{StaticResource FieldLabel}"/>
-                <DockPanel>
-                    <Button DockPanel.Dock="Right" Content="↻" Width="28" Margin="6,0,0,0"
-                            ToolTip="Refresh profiles from profiles.json"
-                            Command="{Binding RefreshProfilesCommand}"/>
-                    <Button DockPanel.Dock="Right" Content="Save" Margin="6,0,0,0"
-                            Command="{Binding SaveProfileCommand}"/>
-                    <ComboBox IsEditable="True"
-                              ItemsSource="{Binding Profiles}"
-                              Text="{Binding SelectedProfileName, UpdateSourceTrigger=PropertyChanged}"/>
+        <!-- ============ TOP BAR: profile combo + actions ============ -->
+        <Border Grid.Row="0" Background="{StaticResource BgTopbar}"
+                BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,0,0,1"
+                Padding="12,10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <DockPanel Grid.Row="0">
+                    <TextBlock Text="Profile" Style="{StaticResource FieldLabel}" Margin="0,0,0,4"
+                               DockPanel.Dock="Top"/>
                 </DockPanel>
-
-                <Separator Margin="0,12"/>
-                <TextBlock Text="CONNECTION" FontSize="11" Opacity="0.7"/>
-
-                <TextBlock Text="Provider" Style="{StaticResource FieldLabel}"/>
-                <ComboBox ItemsSource="{Binding ProviderOptions}" SelectedItem="{Binding Provider}"/>
-
-                <Grid Margin="0,8,0,0">
+                <Grid Grid.Row="1">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="8"/>
-                        <ColumnDefinition Width="80"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0">
-                        <TextBlock Text="Host" Style="{StaticResource FieldLabel}"/>
-                        <TextBox Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="2">
-                        <TextBlock Text="Port" Style="{StaticResource FieldLabel}"/>
-                        <TextBox Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}"/>
-                    </StackPanel>
+                    <ComboBox Grid.Column="0"
+                              IsEditable="True"
+                              ItemsSource="{Binding Profiles}"
+                              Text="{Binding SelectedProfileName, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Button Grid.Column="1" Content="Save"
+                            Style="{StaticResource BtnSecondary}"
+                            Command="{Binding SaveProfileCommand}"
+                            Margin="6,0,0,0"/>
+                    <Button Grid.Column="2" Content="↻"
+                            Style="{StaticResource BtnGhost}"
+                            ToolTip="Refresh profiles from profiles.json"
+                            Command="{Binding RefreshProfilesCommand}"
+                            MinWidth="32" Padding="6,6"
+                            Margin="6,0,0,0"/>
                 </Grid>
+            </Grid>
+        </Border>
 
-                <TextBlock Text="Database" Style="{StaticResource FieldLabel}"/>
-                <TextBox Text="{Binding Database, UpdateSourceTrigger=PropertyChanged}"/>
-
-                <TextBlock Text="Username" Style="{StaticResource FieldLabel}"/>
-                <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
-
-                <TextBlock Text="Password" Style="{StaticResource FieldLabel}"/>
-                <PasswordBox x:Name="PasswordBox" Padding="4,3" PasswordChanged="PasswordBox_OnChanged"/>
-
-                <TextBlock Text="Schemas (comma-separated)" Style="{StaticResource FieldLabel}"/>
-                <TextBox Text="{Binding Schemas, UpdateSourceTrigger=PropertyChanged}"/>
-
-                <Separator Margin="0,12"/>
-                <TextBlock Text="OUTPUT" FontSize="11" Opacity="0.7"/>
-
-                <TextBlock Text="Model name" Style="{StaticResource FieldLabel}"/>
-                <TextBox Text="{Binding ModelName, UpdateSourceTrigger=PropertyChanged}"/>
-
-                <TextBlock Text="Namespace" Style="{StaticResource FieldLabel}"/>
-                <TextBox Text="{Binding Namespace, UpdateSourceTrigger=PropertyChanged}"/>
-
-                <TextBlock Text="Output directory" Style="{StaticResource FieldLabel}"/>
-                <DockPanel>
-                    <Button DockPanel.Dock="Right" Content="…" Width="28" Margin="6,0,0,0"
-                            Click="BrowseOutputDir_Click" ToolTip="Browse folder…"/>
-                    <TextBox Text="{Binding OutputDir, UpdateSourceTrigger=PropertyChanged}"/>
-                </DockPanel>
-
-                <TextBlock Text="Context class (optional)" Style="{StaticResource FieldLabel}"/>
-                <TextBox Text="{Binding ContextClass, UpdateSourceTrigger=PropertyChanged}"/>
-
-                <Separator Margin="0,12"/>
-
-                <WrapPanel>
-                    <Button Content="Test Connection" Command="{Binding TestConnectionCommand}"/>
-                    <Button Content="Scaffold .efml" Command="{Binding ScaffoldCommand}"/>
-                    <Button Content="Generate .cs" Command="{Binding GenerateCommand}"/>
-                    <Button Content="Sync (both)" Command="{Binding SyncCommand}"
-                            FontWeight="Bold"/>
-                </WrapPanel>
-            </StackPanel>
-        </ScrollViewer>
-
-        <GridSplitter Grid.Row="0" Grid.RowSpan="2" Height="4"
-                      HorizontalAlignment="Stretch" VerticalAlignment="Bottom"
-                      Background="{DynamicResource {x:Static vsshell:VsBrushes.GridLineKey}}"/>
-
+        <!-- ============ MAIN AREA: sidebar + content + log ============ -->
         <Grid Grid.Row="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-            <DockPanel Grid.Row="0" Margin="10,6,10,2">
-                <Button DockPanel.Dock="Right" Content="Clear" Command="{Binding ClearLogCommand}" Margin="6,0,0,0"/>
-                <TextBlock Text="Log" FontWeight="SemiBold" VerticalAlignment="Center"/>
-            </DockPanel>
-            <ListBox Grid.Row="1" Margin="10,0,10,10"
-                     x:Name="LogList"
-                     ItemsSource="{Binding LogLines}"
-                     FontFamily="Consolas, Cascadia Mono, monospace"
-                     FontSize="11"
-                     HorizontalContentAlignment="Stretch"
-                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                     VirtualizingPanel.IsVirtualizing="True">
-                <ListBox.ItemContainerStyle>
-                    <Style TargetType="ListBoxItem">
-                        <Setter Property="Padding" Value="2,0"/>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="92"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- ===== SIDEBAR ===== -->
+            <Border Grid.Column="0" Background="{StaticResource BgSidebar}"
+                    BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,0,1,0">
+                <StackPanel Margin="0,10,0,10">
+                    <RadioButton x:Name="NavConnection" Style="{StaticResource NavItem}"
+                                 GroupName="MainNav" IsChecked="True"
+                                 Checked="Nav_Checked" Tag="0"
+                                 ToolTip="Database connection">
+                        <StackPanel>
+                            <TextBlock Text="🔌" FontSize="18" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Connection" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="NavScaffold" Style="{StaticResource NavItem}"
+                                 GroupName="MainNav"
+                                 Checked="Nav_Checked" Tag="1"
+                                 ToolTip="Scaffold .efml from DB">
+                        <StackPanel>
+                            <TextBlock Text="🗄" FontSize="18" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Scaffold" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="NavGenerate" Style="{StaticResource NavItem}"
+                                 GroupName="MainNav"
+                                 Checked="Nav_Checked" Tag="2"
+                                 ToolTip="Generate .cs from .efml">
+                        <StackPanel>
+                            <TextBlock Text="&lt;/&gt;" FontSize="14" HorizontalAlignment="Center" FontWeight="Bold"/>
+                            <TextBlock Text="Generate" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="NavDiagram" Style="{StaticResource NavItem}"
+                                 GroupName="MainNav"
+                                 Checked="Nav_Checked" Tag="3"
+                                 ToolTip="Diagram (coming soon)">
+                        <StackPanel>
+                            <TextBlock Text="📐" FontSize="18" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Diagram" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </RadioButton>
+                </StackPanel>
+            </Border>
+
+            <!-- ===== CONTENT AREA ===== -->
+            <TabControl x:Name="MainTabs" Grid.Column="1"
+                        SelectedIndex="0"
+                        Background="Transparent" BorderThickness="0">
+                <TabControl.Resources>
+                    <Style TargetType="TabItem">
+                        <Setter Property="Visibility" Value="Collapsed"/>
                     </Style>
-                </ListBox.ItemContainerStyle>
-            </ListBox>
+                </TabControl.Resources>
+                <TabControl.Template>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <ContentPresenter ContentSource="SelectedContent"/>
+                        </Grid>
+                    </ControlTemplate>
+                </TabControl.Template>
+
+                <!-- =========== TAB 1: Connection =========== -->
+                <TabItem Header="Connection">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14,14">
+                        <StackPanel>
+                            <TextBlock Text="Database Connection" Style="{StaticResource H1}"/>
+                            <TextBlock Text="Configure your data source and test the integration parameters."
+                                       Style="{StaticResource Subtitle}" Margin="0,2,0,12"/>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="Provider" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox ItemsSource="{Binding ProviderOptions}"
+                                              SelectedItem="{Binding Provider}"/>
+
+                                    <Grid Margin="0,12,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="10"/>
+                                            <ColumnDefinition Width="80"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Host" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="Port" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <TextBlock Text="Database" Style="{StaticResource FieldLabel}" Margin="0,12,0,4"/>
+                                    <TextBox Text="{Binding Database, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                    <TextBlock Text="Username" Style="{StaticResource FieldLabel}" Margin="0,12,0,4"/>
+                                    <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                    <TextBlock Text="Password" Style="{StaticResource FieldLabel}" Margin="0,12,0,4"/>
+                                    <PasswordBox x:Name="PasswordBox" PasswordChanged="PasswordBox_OnChanged"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Button Content="⚡  Test Connection" Style="{StaticResource BtnPrimary}"
+                                    Command="{Binding TestConnectionCommand}"
+                                    Margin="0,14,0,0"
+                                    Height="38" FontSize="13"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- =========== TAB 2: Scaffold =========== -->
+                <TabItem Header="Scaffold">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14,14">
+                        <StackPanel>
+                            <TextBlock Text="Scaffold .efml" Style="{StaticResource H1}"/>
+                            <TextBlock Text="Read the database schema and produce an .efml model."
+                                       Style="{StaticResource Subtitle}" Margin="0,2,0,12"/>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="Schemas (comma-separated)" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding Schemas, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                    <TextBlock Text="Model name" Style="{StaticResource FieldLabel}" Margin="0,12,0,4"/>
+                                    <TextBox Text="{Binding ModelName, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                    <TextBlock Text="Namespace" Style="{StaticResource FieldLabel}" Margin="0,12,0,4"/>
+                                    <TextBox Text="{Binding Namespace, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                    <TextBlock Text="Output directory" Style="{StaticResource FieldLabel}" Margin="0,12,0,4"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Grid.Column="0"
+                                                 Text="{Binding OutputDir, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <Button Grid.Column="1" Content="…"
+                                                Style="{StaticResource BtnGhost}"
+                                                Click="BrowseOutputDir_Click"
+                                                MinWidth="34" Margin="6,0,0,0"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Button Content="Scaffold .efml" Style="{StaticResource BtnPrimary}"
+                                    Command="{Binding ScaffoldCommand}"
+                                    Margin="0,14,0,0"
+                                    Height="38" FontSize="13"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- =========== TAB 3: Generate =========== -->
+                <TabItem Header="Generate">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14,14">
+                        <StackPanel>
+                            <TextBlock Text="Generate .cs" Style="{StaticResource H1}"/>
+                            <TextBlock Text="Produce C# entity classes and a DataContext from the model."
+                                       Style="{StaticResource Subtitle}" Margin="0,2,0,12"/>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="Model name" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding ModelName, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                    <TextBlock Text="Output directory" Style="{StaticResource FieldLabel}" Margin="0,12,0,4"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Grid.Column="0"
+                                                 Text="{Binding OutputDir, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <Button Grid.Column="1" Content="…"
+                                                Style="{StaticResource BtnGhost}"
+                                                Click="BrowseOutputDir_Click"
+                                                MinWidth="34" Margin="6,0,0,0"/>
+                                    </Grid>
+
+                                    <TextBlock Text="Context class (optional)" Style="{StaticResource FieldLabel}" Margin="0,12,0,4"/>
+                                    <TextBox Text="{Binding ContextClass, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Button Content="Generate .cs files" Style="{StaticResource BtnSuccess}"
+                                    Command="{Binding GenerateCommand}"
+                                    Margin="0,14,0,0"
+                                    Height="38" FontSize="13"/>
+                            <Button Content="Sync (Scaffold + Generate)" Style="{StaticResource BtnSecondary}"
+                                    Command="{Binding SyncCommand}"
+                                    Margin="0,8,0,0"
+                                    Height="36" FontSize="12"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- =========== TAB 4: Diagram (placeholder) =========== -->
+                <TabItem Header="Diagram">
+                    <Grid Margin="14,14">
+                        <Border Style="{StaticResource DashedCard}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock Text="📐" FontSize="36" HorizontalAlignment="Center"
+                                           Foreground="{StaticResource TextMuted}"/>
+                                <TextBlock Margin="0,8,0,0" HorizontalAlignment="Center"
+                                           Foreground="{StaticResource TextMuted}"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"
+                                           Text="Diagram view is not available in the VS tool window. Open the EfmlGen Designer app to view diagrams."/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </Grid>
+
+        <!-- ============ LOG PANEL ============ -->
+        <Grid Grid.Row="2" Height="200">
+            <Border Background="{StaticResource LogBg}"
+                    BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,1,0,0">
+                <DockPanel LastChildFill="True">
+                    <Border DockPanel.Dock="Top" Padding="12,8"
+                            BorderBrush="#1E293B" BorderThickness="0,0,0,1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="▶_  Log Output" FontWeight="SemiBold"
+                                       Foreground="{StaticResource LogFg}" FontFamily="Consolas"/>
+                            <Button Grid.Column="1" Content="Clear"
+                                    Command="{Binding ClearLogCommand}"
+                                    Background="Transparent" BorderBrush="Transparent"
+                                    Foreground="#94A3B8" FontWeight="Normal" MinHeight="22"
+                                    Padding="6,2"/>
+                        </Grid>
+                    </Border>
+                    <ListBox x:Name="LogList"
+                             ItemsSource="{Binding LogLines}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Foreground="{StaticResource LogFg}"
+                             FontFamily="Cascadia Mono, Consolas"
+                             FontSize="11"
+                             HorizontalContentAlignment="Stretch"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                             VirtualizingPanel.IsVirtualizing="True">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="12,1"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Foreground" Value="{StaticResource LogFg}"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+                </DockPanel>
+            </Border>
         </Grid>
     </Grid>
 </UserControl>

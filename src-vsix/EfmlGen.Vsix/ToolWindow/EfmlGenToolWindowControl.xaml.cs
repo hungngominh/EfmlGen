@@ -9,6 +9,8 @@ namespace EfmlGen.Vsix.ToolWindow
     {
         private ToolWindowViewModel _vm;
 
+        internal ToolWindowViewModel ViewModel => _vm;
+
         public EfmlGenToolWindowControl()
         {
             InitializeComponent();
@@ -43,6 +45,16 @@ namespace EfmlGen.Vsix.ToolWindow
         private void PasswordBox_OnChanged(object sender, RoutedEventArgs e)
         {
             if (_vm != null) _vm.Password = PasswordBox.Password;
+        }
+
+        private void Nav_Checked(object sender, RoutedEventArgs e)
+        {
+            if (MainTabs == null) return;
+            if (sender is System.Windows.Controls.Primitives.ToggleButton tb && tb.Tag is string tag
+                && int.TryParse(tag, out var idx) && idx >= 0 && idx < MainTabs.Items.Count)
+            {
+                MainTabs.SelectedIndex = idx;
+            }
         }
 
         private void BrowseOutputDir_Click(object sender, RoutedEventArgs e)
