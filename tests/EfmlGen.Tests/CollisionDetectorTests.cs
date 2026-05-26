@@ -94,11 +94,11 @@ public class CollisionDetectorTests
     [InlineData("user-id")]    // dash
     [InlineData("customer name")]  // space
     [InlineData("Order.Total")]    // dot
-    public void Validate_InvalidIdentifierProperty_Error(string badName)
+    public void Validate_InvalidIdentifierProperty_Warning(string badName)
     {
         var m = ModelWith(NewClass("Customer", (badName, badName)));
         var ws = CollisionDetector.Validate(m);
-        Assert.Contains(ws, w => w.Severity == CollisionDetector.Severity.Error
+        Assert.Contains(ws, w => w.Severity == CollisionDetector.Severity.Warning
             && w.Message.Contains("not a valid C# identifier")
             && w.Message.Contains(badName));
     }
@@ -107,11 +107,11 @@ public class CollisionDetectorTests
     [InlineData("1Customer")]
     [InlineData("Customer-Data")]
     [InlineData("Customer Data")]
-    public void Validate_InvalidIdentifierClass_Error(string badName)
+    public void Validate_InvalidIdentifierClass_Warning(string badName)
     {
         var m = ModelWith(NewClass(badName));
         var ws = CollisionDetector.Validate(m);
-        Assert.Contains(ws, w => w.Severity == CollisionDetector.Severity.Error
+        Assert.Contains(ws, w => w.Severity == CollisionDetector.Severity.Warning
             && w.Message.Contains("not a valid C# identifier")
             && w.Message.Contains(badName));
     }
@@ -122,7 +122,7 @@ public class CollisionDetectorTests
     [InlineData("Order2")]
     [InlineData("My_Table")]
     [InlineData("class")]      // reserved keyword is still a valid identifier (gets @-escaped)
-    public void Validate_ValidIdentifier_NoIdentifierError(string okName)
+    public void Validate_ValidIdentifier_NoIdentifierWarning(string okName)
     {
         var m = ModelWith(NewClass(okName));
         var ws = CollisionDetector.Validate(m);

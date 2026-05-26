@@ -21,7 +21,7 @@ public static class EntityEmitter
         sb.Append("using System.Linq.Expressions;\r\n");
         sb.Append("\r\n");
 
-        var classRef = CsKeywords.Escape(cls.Name);
+        var classRef = CsKeywords.SafeId(cls.Name);
 
         sb.Append("namespace ").Append(model.Namespace).Append("\r\n");
         sb.Append("{\r\n");
@@ -37,7 +37,7 @@ public static class EntityEmitter
         {
             var init = DefaultLiterals.CSharpInitializer(p);
             if (init != null)
-                sb.Append("            this.").Append(CsKeywords.Escape(p.Name)).Append(" = ").Append(init).Append(";\r\n");
+                sb.Append("            this.").Append(CsKeywords.SafeId(p.Name)).Append(" = ").Append(init).Append(";\r\n");
         }
 
         // Collection nav initializers (after property inits)
@@ -45,7 +45,7 @@ public static class EntityEmitter
         {
             if (nav.IsCollection)
             {
-                sb.Append("            this.").Append(CsKeywords.Escape(nav.Name))
+                sb.Append("            this.").Append(CsKeywords.SafeId(nav.Name))
                   .Append(" = new List<").Append(nav.TargetClass).Append(">();\r\n");
             }
         }
@@ -73,7 +73,7 @@ public static class EntityEmitter
                 sb.Append("IList<").Append(nav.TargetClass).Append(">");
             else
                 sb.Append(nav.TargetClass);
-            sb.Append(' ').Append(CsKeywords.Escape(nav.Name)).Append(" { get; set; }\r\n");
+            sb.Append(' ').Append(CsKeywords.SafeId(nav.Name)).Append(" { get; set; }\r\n");
         }
 
         if (ctx.GenerateIndexMethods)
@@ -97,7 +97,7 @@ public static class EntityEmitter
         sb.Append("        public virtual ")
           .Append(TypeMap.CSharpTypeWithNullability(p))
           .Append(' ')
-          .Append(CsKeywords.Escape(p.Name))
+          .Append(CsKeywords.SafeId(p.Name))
           .Append(" { get; set; }\r\n");
     }
 
@@ -113,11 +113,11 @@ public static class EntityEmitter
             }
             if (props.Count == 0) continue;
 
-            var suffix = string.Concat(props.ConvertAll(p => p.Name));
+            var suffix = string.Concat(props.ConvertAll(p => IdentifierSanitizer.SafeName(p.Name)));
             var paramList = string.Join(", ", props.ConvertAll(p =>
-                TypeMap.CSharpTypeWithNullability(p) + " " + ToCamel(p.Name)));
+                TypeMap.CSharpTypeWithNullability(p) + " " + ToCamel(IdentifierSanitizer.SafeName(p.Name))));
             var lambdaBody = string.Join(" && ", props.ConvertAll(p =>
-                $"x.{CsKeywords.Escape(p.Name)} == {ToCamel(p.Name)}"));
+                $"x.{CsKeywords.SafeId(p.Name)} == {ToCamel(IdentifierSanitizer.SafeName(p.Name))}"));
 
             sb.Append("\r\n");
             if (idx.IsUnique)

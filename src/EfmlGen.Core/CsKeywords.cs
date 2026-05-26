@@ -32,4 +32,12 @@ public static class CsKeywords
 
     public static bool IsReserved(string name) =>
         !string.IsNullOrEmpty(name) && Reserved.Contains(name);
+
+    /// <summary>
+    /// Convenience wrapper: sanitize tên thành C# identifier hợp lệ (nếu cần), rồi
+    /// escape reserved keyword bằng `@`. Dùng cho mọi vị trí emit identifier vào file .cs.
+    /// Tên gốc hợp lệ + không phải keyword → trả về nguyên.
+    /// </summary>
+    public static string SafeId(string name) =>
+        Escape(IdentifierSanitizer.SafeName(name));
 }

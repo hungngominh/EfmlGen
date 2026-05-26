@@ -109,18 +109,26 @@ public static class CollisionDetector
         }
 
         // 7. Invalid C# identifier characters — DB allows names that C# does not (leading digit,
-        // dashes, spaces, dots, etc). We do not auto-sanitize because policy is to preserve DB
-        // names; flag as Error so the user renames the identifier in efml before generation.
+        // dashes, spaces, dots, etc). Generator auto-sanitizes to a valid C# identifier at .cs
+        // emission time (DB column refs in HasColumnName/ToTable stay raw). We warn so the user
+        // is aware of the auto-rename and can override by renaming in efml if they want a
+        // different identifier.
         foreach (var c in model.Classes)
         {
-            if (!string.IsNullOrWhiteSpace(c.Name) && !IsValidCSharpIdentifier(c.Name))
-                warnings.Add(new Warning(Severity.Error,
-                    $"Class '{c.Name}' is not a valid C# identifier (table '{c.Table}') — generated .cs will not compile. Rename in efml."));
+            if (!string.IsNullOrWhiteSpace(c.Name) && !IdentifierSanitizer.IsValid(c.Name))
+            {
+                var safe = IdentifierSanitizer.SafeName(c.Name);
+                warnings.Add(new Warning(Severity.Warning,
+                    $"Class '{c.Name}' is not a valid C# identifier — will be emitted as '{safe}'. Rename in efml if you want a different name."));
+            }
             foreach (var p in c.AllProperties)
             {
-                if (!string.IsNullOrWhiteSpace(p.Name) && !IsValidCSharpIdentifier(p.Name))
-                    warnings.Add(new Warning(Severity.Error,
-                        $"Property '{c.Name}.{p.Name}' is not a valid C# identifier (column '{p.Column.Name}') — generated .cs will not compile. Rename in efml."));
+                if (!string.IsNullOrWhiteSpace(p.Name) && !IdentifierSanitizer.IsValid(p.Name))
+                {
+                    var safe = IdentifierSanitizer.SafeName(p.Name);
+                    warnings.Add(new Warning(Severity.Warning,
+                        $"Property '{c.Name}.{p.Name}' is not a valid C# identifier — will be emitted as '{safe}'. Rename in efml if you want a different name."));
+                }
             }
         }
 
@@ -128,22 +136,9 @@ public static class CollisionDetector
     }
 
     /// <summary>
-    /// C# identifier rules (simplified): first char must be letter or '_';
-    /// remaining chars must be letter, digit, or '_'. Unicode letters are accepted.
-    /// Does NOT check for reserved keywords (handled separately by CsKeywords.Escape).
+    /// Kept for backward-compat with tests; delegates to <see cref="IdentifierSanitizer.IsValid"/>.
     /// </summary>
-    public static bool IsValidCSharpIdentifier(string name)
-    {
-        if (string.IsNullOrEmpty(name)) return false;
-        var first = name[0];
-        if (first != '_' && !char.IsLetter(first)) return false;
-        for (int i = 1; i < name.Length; i++)
-        {
-            var c = name[i];
-            if (c != '_' && !char.IsLetterOrDigit(c)) return false;
-        }
-        return true;
-    }
+    public static bool IsValidCSharpIdentifier(string name) => IdentifierSanitizer.IsValid(name);
 
     private static IEnumerable<string> GetNavNamesOnClass(EfAssociation a, string className)
     {

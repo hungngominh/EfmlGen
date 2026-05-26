@@ -67,7 +67,7 @@ public static class ContextEmitter
 
         foreach (var c in model.Classes)
         {
-            sb.Append("        public virtual DbSet<").Append(CsKeywords.Escape(c.Name)).Append("> ").Append(CsKeywords.Escape(c.EntitySet)).Append("\r\n");
+            sb.Append("        public virtual DbSet<").Append(CsKeywords.SafeId(c.Name)).Append("> ").Append(CsKeywords.SafeId(c.EntitySet)).Append("\r\n");
             sb.Append("        {\r\n");
             sb.Append("            get;\r\n");
             sb.Append("            set;\r\n");
@@ -81,8 +81,9 @@ public static class ContextEmitter
         sb.Append("\r\n");
         foreach (var c in model.Classes)
         {
-            sb.Append("            this.").Append(c.Name).Append("Mapping(modelBuilder);\r\n");
-            sb.Append("            this.Customize").Append(c.Name).Append("Mapping(modelBuilder);\r\n");
+            var nm = IdentifierSanitizer.SafeName(c.Name);
+            sb.Append("            this.").Append(nm).Append("Mapping(modelBuilder);\r\n");
+            sb.Append("            this.Customize").Append(nm).Append("Mapping(modelBuilder);\r\n");
             sb.Append("\r\n");
         }
         sb.Append("            RelationshipsMapping(modelBuilder);\r\n");
@@ -111,13 +112,14 @@ public static class ContextEmitter
 
     private static void EmitClassMapping(StringBuilder sb, EfClass c)
     {
-        sb.Append("        #region ").Append(c.Name).Append(" Mapping\r\n");
+        var classMethodName = IdentifierSanitizer.SafeName(c.Name);
+        sb.Append("        #region ").Append(classMethodName).Append(" Mapping\r\n");
         sb.Append("\r\n");
-        sb.Append("        private void ").Append(c.Name).Append("Mapping(ModelBuilder modelBuilder)\r\n");
+        sb.Append("        private void ").Append(classMethodName).Append("Mapping(ModelBuilder modelBuilder)\r\n");
         sb.Append("        {\r\n");
 
         var tableName = UnquoteBackticks(c.Table);
-        var classRef = CsKeywords.Escape(c.Name);
+        var classRef = CsKeywords.SafeId(c.Name);
         sb.Append("            modelBuilder.Entity<").Append(classRef).Append(">().ToTable(@\"")
           .Append(tableName).Append("\", @\"").Append(c.Schema).Append("\");\r\n");
 
@@ -126,10 +128,10 @@ public static class ContextEmitter
             EmitPropertyMapping(sb, classRef, p);
 
         sb.Append("            modelBuilder.Entity<").Append(classRef).Append(">().HasKey(@\"")
-          .Append(c.Id.Name).Append("\");\r\n");
+          .Append(IdentifierSanitizer.SafeName(c.Id.Name)).Append("\");\r\n");
         sb.Append("        }\r\n");
         sb.Append("\r\n");
-        sb.Append("        partial void Customize").Append(c.Name).Append("Mapping(ModelBuilder modelBuilder);\r\n");
+        sb.Append("        partial void Customize").Append(classMethodName).Append("Mapping(ModelBuilder modelBuilder);\r\n");
         sb.Append("\r\n");
         sb.Append("        #endregion\r\n");
         sb.Append("\r\n");
@@ -138,7 +140,7 @@ public static class ContextEmitter
     private static void EmitPropertyMapping(StringBuilder sb, string className, EfProperty p)
     {
         sb.Append("            modelBuilder.Entity<").Append(className).Append(">().Property(x => x.")
-          .Append(CsKeywords.Escape(p.Name)).Append(")");
+          .Append(CsKeywords.SafeId(p.Name)).Append(")");
 
         var colName = UnquoteBackticks(p.Column.Name);
         sb.Append(".HasColumnName(@\"").Append(colName).Append("\")");
@@ -189,15 +191,17 @@ public static class ContextEmitter
             var fkProperties = a.End2.Multiplicity == Multiplicity.Many || a.End2.PropertyNames.Count > 0
                 ? a.End2.PropertyNames
                 : a.End1.PropertyNames;
-            var fkArgs = string.Join(", ", fkProperties.Select(p => "@\"" + p + "\""));
+            // HasForeignKey args reference the C# property names on the entity, which may have been
+            // sanitized if the underlying column name wasn't a valid identifier.
+            var fkArgs = string.Join(", ", fkProperties.Select(p => "@\"" + IdentifierSanitizer.SafeName(p) + "\""));
 
             var isRequired = !(a.End1.Multiplicity == Multiplicity.ZeroOrOne || a.End2.Multiplicity == Multiplicity.ZeroOrOne);
             var isRequiredStr = isRequired ? "true" : "false";
 
-            var end1ClassRef = CsKeywords.Escape(a.End1.ClassName);
-            var end1NavRef = CsKeywords.Escape(a.End1.Name);
-            var end2NavRef = CsKeywords.Escape(a.End2.Name);
-            var end2ClassRef = CsKeywords.Escape(a.End2.ClassName);
+            var end1ClassRef = CsKeywords.SafeId(a.End1.ClassName);
+            var end1NavRef = CsKeywords.SafeId(a.End1.Name);
+            var end2NavRef = CsKeywords.SafeId(a.End2.Name);
+            var end2ClassRef = CsKeywords.SafeId(a.End2.ClassName);
 
             var cascadeSuffix = a.CascadeDelete ? ".OnDelete(DeleteBehavior.Cascade)" : "";
 

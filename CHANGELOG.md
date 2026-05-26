@@ -2,6 +2,29 @@
 
 Toàn bộ thay đổi đáng chú ý của EfmlGen được liệt kê tại đây. Format theo [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning theo [SemVer](https://semver.org/).
 
+## [0.4.2] — 2026-05-26
+
+### Fixed — v0.4.1 block GenCode khi DB có tên không hợp lệ làm C# identifier
+- v0.4.1 thêm rule `CollisionDetector` với **Severity.Error** cho identifier không hợp lệ (leading digit, dash, space, dot, …) → block generation trong UI WPF/VSIX. Nhiều DB schema thực tế có những tên này → user không generate được nếu không tick Force.
+- v0.4.2 đổi sang **auto-sanitize ở emission**, theo strategy của `EntityFrameworkCore.Generator` ([ModelGenerator.ToLegalName](ref/EntityFrameworkCore.Generator/src/EntityFrameworkCore.Generator.Core/ModelGenerator.cs)).
+
+### Changed — Identifier auto-sanitization
+- `IdentifierSanitizer.SafeName(name)` strip leading non-alpha, split trên `[\W_]+`, ghép PascalCase. Tên hợp lệ → giữ nguyên (policy "DB sao thì code vậy"). Tên không hợp lệ → sanitize:
+  - `1stName` → `StName`
+  - `user-id` → `UserId`
+  - `customer name` → `CustomerName`
+  - `Order.Total` → `OrderTotal`
+- `CsKeywords.SafeId(name)` = sanitize + escape reserved keyword (`@class` etc).
+- Emitters (`EntityEmitter`, `ContextEmitter`) dùng `SafeId` cho mọi C# identifier (class name, property name, nav, method, `x => x.Prop` lambda); `HasForeignKey(@"...")` và `HasKey(@"...")` dùng `SafeName` (string version, không có `@`).
+- DB-facing strings (`HasColumnName(@"customer name")`, `ToTable(@"raw-name")`) vẫn giữ raw → EF map đúng cột/bảng thật.
+
+### Changed — `CollisionDetector` rule #7 Error → Warning
+- Vì tool đã auto-sanitize, không cần block. Message mới: `Class 'X' is not a valid C# identifier — will be emitted as 'Y'. Rename in efml if you want a different name.`
+
+### Build
+- Bump CLI + WPF + installer + VSIX manifest sang `0.4.2`.
+- 66/66 test pass (golden tests vẫn byte-identical vì sample dùng identifier hợp lệ).
+
 ## [0.4.1] — 2026-05-26
 
 Audit cross-check với `EntityFrameworkCore.Generator` (ref) → fix các gap về tính đúng + tính bao quát của model mapping. Toàn bộ behavior mặc định backward-compatible (54 byte-identical golden test cũ vẫn pass).
