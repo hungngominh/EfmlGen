@@ -2,6 +2,35 @@
 
 Toàn bộ thay đổi đáng chú ý của EfmlGen được liệt kê tại đây. Format theo [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning theo [SemVer](https://semver.org/).
 
+## [0.4.1] — 2026-05-26
+
+Audit cross-check với `EntityFrameworkCore.Generator` (ref) → fix các gap về tính đúng + tính bao quát của model mapping. Toàn bộ behavior mặc định backward-compatible (54 byte-identical golden test cũ vẫn pass).
+
+### Fixed — Association / relationship correctness
+- **Composite FK không còn bị skip.** `DatabaseModelMapper.MapAssociation` trước đây sớm `return null` cho FK có nhiều hơn 1 column → các bảng nối có composite FK bị mất relationship. Giờ mọi FK column được serialize qua `EfAssociationEnd.PropertyNames` (List), và `ContextEmitter` emit `.HasForeignKey(@"X", @"Y")` đầy đủ.
+- **One-to-one detection.** Khi tập FK column trùng với PK của bảng phụ thuộc → cardinality = `OneToOne`, emit `HasOne/WithOne/HasForeignKey<T>(...)` thay vì `HasMany/WithOne` sai nghĩa.
+- **CascadeDelete.** `EfAssociation.CascadeDelete` đọc từ `DatabaseForeignKey.OnDelete == Cascade`, round-trip qua `.efml` (`p1:CascadeDelete`), và emit `.OnDelete(DeleteBehavior.Cascade)` trong `RelationshipsMapping`.
+
+### Fixed — Column metadata fidelity
+- **Rowversion / timestamp.** SQL Server columns `rowversion`/`timestamp` giờ tự set `IsConcurrencyToken=true` + `IsRowVersion=true`, emit `.IsRowVersion()` thay cho `.IsConcurrencyToken()`.
+- **Computed column.** Đọc `DatabaseColumn.ComputedColumnSql` → set `ValueGenerated=OnAddOrUpdate` và emit `.HasComputedColumnSql(@"...")`. Round-trip qua attribute `computed` trên `<column>`.
+- **SQL Server edge types.** Thêm map cho `hierarchyid`, `geography`, `geometry` → `Blob` (giữ `sql-type` gốc); `sql_variant` → `String`. Trước đây fallback string mất sql-type.
+
+### Added — Naming options (opt-in, default `Preserve`)
+- `MapOptions.EntityNaming` (Preserve / Singular / Plural) và `RelationshipNaming` (Preserve / Pluralize / Suffix) — apply Inflector (singularize/pluralize) tự viết, không thêm dependency.
+- Default vẫn là `Preserve` → tên class/property/column = tên DB nguyên bản (policy "giữ nguyên DB sao thì code vậy").
+
+### Added — Index methods (opt-in)
+- `EfClass.Indexes` (List<EfIndex>) populate từ `table.Indexes` (loại trừ PK index), round-trip qua `<index>` + `<column>` trong `.efml`.
+- `GenerationContext.GenerateIndexMethods=true` → `EntityEmitter` emit `public static T? GetByXxx(...)` (unique index) hoặc `IQueryable<T> GetByXxx(...)` (non-unique). Default false để giữ parity với Devart Entity Developer template.
+
+### Added — Collision detection: invalid C# identifier
+- `CollisionDetector` rule mới: cảnh báo Error nếu class/property name không phải C# identifier hợp lệ (leading digit, dash, space, dot, …). KHÔNG tự rename — theo policy "giữ nguyên DB, chỉ detect". User được hướng dẫn rename trong `.efml`.
+
+### Build
+- Bump CLI + WPF + installer + VSIX manifest sang `0.4.1`.
+- 66/66 test pass (54 golden + 12 collision detector tests mới).
+
 ## [0.4.0] — 2026-05-25
 
 ### Fixed — `RelationshipsMapping` sai entity cho cross-class association

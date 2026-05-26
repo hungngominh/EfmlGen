@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using EfmlGen.Core;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Scaffolding.Metadata;
 
 namespace EfmlGen.Db;
@@ -30,7 +31,16 @@ public static class DatabaseModelMapper
         /// Default false (timezone preserved as DateTimeOffset).
         /// </summary>
         public bool ForceDateTime { get; init; } = false;
+
+        /// <summary>How to derive entity class names from table names. Default: Preserve.</summary>
+        public EntityNaming EntityNaming { get; init; } = EntityNaming.Preserve;
+
+        /// <summary>How to derive the reverse (collection) nav property name. Default: Preserve.</summary>
+        public RelationshipNaming RelationshipNaming { get; init; } = RelationshipNaming.Preserve;
     }
+
+    public enum EntityNaming { Preserve, Singular, Plural }
+    public enum RelationshipNaming { Preserve, Pluralize, Suffix }
 
     public static EfmlModel Map(DatabaseModel dbModel, MapOptions opt)
     {
@@ -42,11 +52,16 @@ public static class DatabaseModelMapper
             Guid = Guid.NewGuid()
         };
 
-        foreach (var table in dbModel.Tables)
-            model.Classes.Add(MapClass(table, opt));
+        // table.Name → class name (after EntityNaming transform). Used by association mapping
+        // to resolve principal/dependent class references.
+        var tableToClassName = new System.Collections.Generic.Dictionary<string, string>(System.StringComparer.Ordinal);
 
-        var includedClasses = new System.Collections.Generic.HashSet<string>(
-            model.Classes.Select(c => c.Name), System.StringComparer.Ordinal);
+        foreach (var table in dbModel.Tables)
+        {
+            var cls = MapClass(table, opt);
+            tableToClassName[table.Name] = cls.Name;
+            model.Classes.Add(cls);
+        }
 
         // Build associations, dedup by structural fingerprint
         // (Postgres metadata occasionally returns the same logical FK multiple times)
@@ -57,12 +72,12 @@ public static class DatabaseModelMapper
             {
                 // Skip FK whose principal table is not in the included class set
                 // (e.g. user filtered tables via --tables and the target was excluded).
-                if (!includedClasses.Contains(fk.PrincipalTable.Name)) continue;
+                if (!tableToClassName.ContainsKey(fk.PrincipalTable.Name)) continue;
 
-                var assoc = MapAssociation(table, fk);
+                var assoc = MapAssociation(table, fk, tableToClassName, opt);
                 if (assoc == null) continue;
 
-                var fp = $"{assoc.End1.ClassName}|{assoc.End1.PropertyName}|{assoc.End2.ClassName}|{assoc.End2.PropertyName}";
+                var fp = $"{assoc.End1.ClassName}|{string.Join(",", assoc.End1.PropertyNames)}|{assoc.End2.ClassName}|{string.Join(",", assoc.End2.PropertyNames)}";
                 if (!seenFingerprints.Add(fp)) continue;  // skip duplicate
 
                 model.Associations.Add(assoc);
@@ -73,6 +88,20 @@ public static class DatabaseModelMapper
 
         return model;
     }
+
+    private static string ApplyEntityNaming(string tableName, EntityNaming naming) => naming switch
+    {
+        EntityNaming.Singular => Inflector.Singularize(tableName),
+        EntityNaming.Plural => Inflector.Pluralize(tableName),
+        _ => tableName
+    };
+
+    private static string ApplyRelationshipNaming(string baseName, RelationshipNaming naming) => naming switch
+    {
+        RelationshipNaming.Pluralize => Inflector.Pluralize(baseName),
+        RelationshipNaming.Suffix => baseName + "List",
+        _ => baseName
+    };
 
     /// <summary>
     /// Match ED behavior: for an ordered (principal, dependent) pair with a single FK
@@ -101,7 +130,7 @@ public static class DatabaseModelMapper
     {
         var cls = new EfClass
         {
-            Name = table.Name,
+            Name = ApplyEntityNaming(table.Name, opt.EntityNaming),
             EntitySet = table.Name,
             Table = $"`{table.Name}`",
             Schema = table.Schema ?? "",
@@ -126,7 +155,33 @@ public static class DatabaseModelMapper
             cls.Properties.RemoveAt(0);
         }
 
+        // Indexes (skip the PK index — already represented by EfClass.Id)
+        foreach (var idx in table.Indexes)
+        {
+            if (IsPrimaryKeyIndex(idx, table)) continue;
+            var ei = new EfIndex
+            {
+                Name = idx.Name ?? "",
+                IsUnique = idx.IsUnique
+            };
+            foreach (var c in idx.Columns)
+                ei.ColumnNames.Add(c.Name);
+            if (ei.ColumnNames.Count > 0)
+                cls.Indexes.Add(ei);
+        }
+
         return cls;
+    }
+
+    private static bool IsPrimaryKeyIndex(DatabaseIndex idx, DatabaseTable table)
+    {
+        var pk = table.PrimaryKey;
+        if (pk == null) return false;
+        if (pk.Columns.Count != idx.Columns.Count) return false;
+        for (int i = 0; i < pk.Columns.Count; i++)
+            if (!string.Equals(pk.Columns[i].Name, idx.Columns[i].Name, StringComparison.OrdinalIgnoreCase))
+                return false;
+        return true;
     }
 
     private readonly record struct MappedType(
@@ -146,26 +201,36 @@ public static class DatabaseModelMapper
     private static EfProperty MapProperty(DatabaseColumn col, MapOptions opt)
     {
         var t = MapStoreType(col.StoreType ?? "", opt);
+        var isRowVersion = IsRowVersionColumn(col, opt);
+        var valueGenerated = col.ValueGenerated switch
+        {
+            ValueGenerated.OnAdd => "OnAdd",
+            ValueGenerated.OnAddOrUpdate => "OnAddOrUpdate",
+            _ => null
+        };
+        // Computed columns are server-generated on add+update
+        if (!string.IsNullOrEmpty(col.ComputedColumnSql) && valueGenerated == null)
+            valueGenerated = "OnAddOrUpdate";
+        if (isRowVersion && valueGenerated == null)
+            valueGenerated = "OnAddOrUpdate";
 
         return new EfProperty
         {
             Name = col.Name,
             Type = t.EfType,
             IsNullable = col.IsNullable,
-            ValueGenerated = col.ValueGenerated switch
-            {
-                ValueGenerated.OnAdd => "OnAdd",
-                ValueGenerated.OnAddOrUpdate => "OnAddOrUpdate",
-                _ => null
-            },
+            ValueGenerated = valueGenerated,
             ValidateRequired = !col.IsNullable,
             ValidateMaxLength = t.Length,
             Guid = Guid.NewGuid(),
+            IsConcurrencyToken = isRowVersion,
+            IsRowVersion = isRowVersion,
             Column = new EfColumn
             {
                 Name = $"`{col.Name}`",
                 NotNull = !col.IsNullable,
                 Default = col.DefaultValueSql,
+                Computed = col.ComputedColumnSql,
                 SqlType = t.SqlType,
                 Length = t.Length,
                 Precision = t.Precision,
@@ -175,50 +240,107 @@ public static class DatabaseModelMapper
         };
     }
 
-    private static EfAssociation? MapAssociation(DatabaseTable dependentTable, DatabaseForeignKey fk)
+    /// <summary>
+    /// Detect rowversion/timestamp columns. EF Core scaffolder usually sets
+    /// ValueGenerated=OnAddOrUpdate AND IsRowVersion via store type, but providers
+    /// differ — fall back to store type sniffing.
+    /// </summary>
+    private static bool IsRowVersionColumn(DatabaseColumn col, MapOptions opt)
     {
-        // MVP: skip composite FK
-        if (fk.Columns.Count != 1 || fk.PrincipalColumns.Count != 1)
-            return null;
+        if (opt.Provider != DbProvider.SqlServer) return false;
+        var st = (col.StoreType ?? "").ToLowerInvariant();
+        return st == "rowversion" || st == "timestamp";
+    }
 
-        var fkCol = fk.Columns[0];
+    private static EfAssociation? MapAssociation(
+        DatabaseTable dependentTable,
+        DatabaseForeignKey fk,
+        System.Collections.Generic.Dictionary<string, string> tableToClassName,
+        MapOptions opt)
+    {
+        if (fk.Columns.Count == 0 || fk.PrincipalColumns.Count == 0) return null;
+        if (fk.Columns.Count != fk.PrincipalColumns.Count) return null;  // malformed
+
         var principalTable = fk.PrincipalTable;
-        var principalCol = fk.PrincipalColumns[0];
+        var firstFkCol = fk.Columns[0];
+
+        var principalClassName = tableToClassName.TryGetValue(principalTable.Name, out var pcn) ? pcn : principalTable.Name;
+        var dependentClassName = tableToClassName.TryGetValue(dependentTable.Name, out var dcn) ? dcn : dependentTable.Name;
 
         var assocName = string.IsNullOrEmpty(fk.Name)
-            ? $"{principalTable.Name}_{dependentTable.Name}"
+            ? $"{principalClassName}_{dependentClassName}"
             : fk.Name;
 
-        // Determine multiplicity
-        var dependentMult = fkCol.IsNullable ? Multiplicity.ZeroOrOne : Multiplicity.One;
+        // Required if all FK columns are non-nullable
+        var allRequired = fk.Columns.All(c => !c.IsNullable);
+        var dependentMult = allRequired ? Multiplicity.One : Multiplicity.ZeroOrOne;
 
-        return new EfAssociation
+        // One-to-one: FK column(s) match the dependent table's primary key exactly
+        // (i.e. dependent PK *is* the FK → at most one dependent row per principal).
+        var isOneToOne = IsOneToOneFk(dependentTable, fk);
+        var cardinality = isOneToOne ? Cardinality.OneToOne : Cardinality.OneToMany;
+        var principalMult = isOneToOne ? Multiplicity.Many : Multiplicity.Many;
+        // For 1:1, the principal end is also non-collection (One/ZeroOrOne).
+        if (isOneToOne) principalMult = allRequired ? Multiplicity.One : Multiplicity.ZeroOrOne;
+
+        // CascadeDelete from the FK's delete rule
+        var cascadeDelete = fk.OnDelete == ReferentialAction.Cascade;
+
+        // Name suffix uses the first FK column (matches ED single-column behavior).
+        // For composite FK we keep the same naming since the property element list disambiguates.
+        var nameSuffix = firstFkCol.Name;
+
+        // Reverse-nav (the collection side) naming. By default we keep the legacy
+        // `Class_FK1` form for backward compat with existing .efml files.
+        var reverseBase = $"{dependentClassName}_{nameSuffix}1";
+        var reverseNavName = isOneToOne
+            ? reverseBase
+            : ApplyRelationshipNaming(reverseBase, opt.RelationshipNaming);
+
+        var assoc = new EfAssociation
         {
             Name = assocName,
-            Cardinality = Cardinality.OneToMany,
+            Cardinality = cardinality,
             Guid = Guid.NewGuid(),
+            CascadeDelete = cascadeDelete,
             End1 = new EfAssociationEnd
             {
                 Multiplicity = dependentMult,
-                Name = $"{principalTable.Name}_{fkCol.Name}",
-                ClassName = principalTable.Name,
-                RelationClass = principalTable.Name,
+                Name = $"{principalClassName}_{nameSuffix}",
+                ClassName = principalClassName,
+                RelationClass = principalClassName,
                 Constrained = true,
                 Lazy = false,
-                Guid = Guid.NewGuid(),
-                PropertyName = principalCol.Name
+                Guid = Guid.NewGuid()
             },
             End2 = new EfAssociationEnd
             {
-                Multiplicity = Multiplicity.Many,
-                Name = $"{dependentTable.Name}_{fkCol.Name}1",
-                ClassName = dependentTable.Name,
-                RelationClass = dependentTable.Name,
+                Multiplicity = isOneToOne ? Multiplicity.One : Multiplicity.Many,
+                Name = reverseNavName,
+                ClassName = dependentClassName,
+                RelationClass = dependentClassName,
                 Constrained = false,
                 Lazy = false,
-                Guid = Guid.NewGuid(),
-                PropertyName = fkCol.Name
+                Guid = Guid.NewGuid()
             }
         };
+
+        foreach (var pc in fk.PrincipalColumns)
+            assoc.End1.PropertyNames.Add(pc.Name);
+        foreach (var fc in fk.Columns)
+            assoc.End2.PropertyNames.Add(fc.Name);
+
+        return assoc;
+    }
+
+    private static bool IsOneToOneFk(DatabaseTable dependentTable, DatabaseForeignKey fk)
+    {
+        var pk = dependentTable.PrimaryKey;
+        if (pk == null || pk.Columns.Count == 0) return false;
+        if (pk.Columns.Count != fk.Columns.Count) return false;
+
+        var pkSet = new System.Collections.Generic.HashSet<string>(
+            pk.Columns.Select(c => c.Name), System.StringComparer.OrdinalIgnoreCase);
+        return fk.Columns.All(c => pkSet.Contains(c.Name));
     }
 }

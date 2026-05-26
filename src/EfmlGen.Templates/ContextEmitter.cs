@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using EfmlGen.Core;
 
@@ -155,7 +156,9 @@ public static class ContextEmitter
         else
             sb.Append(".ValueGeneratedNever()");
 
-        if (p.IsConcurrencyToken)
+        if (p.IsRowVersion)
+            sb.Append(".IsRowVersion()");
+        else if (p.IsConcurrencyToken)
             sb.Append(".IsConcurrencyToken()");
 
         if (p.Column.Length.HasValue)
@@ -168,7 +171,9 @@ public static class ContextEmitter
               .Append(p.Column.Scale.Value.ToString(CultureInfo.InvariantCulture))
               .Append(")");
 
-        if (!string.IsNullOrEmpty(p.Column.Default))
+        if (!string.IsNullOrEmpty(p.Column.Computed))
+            sb.Append(".HasComputedColumnSql(@\"").Append(p.Column.Computed).Append("\")");
+        else if (!string.IsNullOrEmpty(p.Column.Default))
             sb.Append(".HasDefaultValueSql(@\"").Append(p.Column.Default).Append("\")");
 
         sb.Append(";\r\n");
@@ -181,9 +186,10 @@ public static class ContextEmitter
 
         foreach (var a in model.Associations)
         {
-            var fkProperty = a.End2.Multiplicity == Multiplicity.Many
-                ? a.End2.PropertyName
-                : a.End1.PropertyName;
+            var fkProperties = a.End2.Multiplicity == Multiplicity.Many || a.End2.PropertyNames.Count > 0
+                ? a.End2.PropertyNames
+                : a.End1.PropertyNames;
+            var fkArgs = string.Join(", ", fkProperties.Select(p => "@\"" + p + "\""));
 
             var isRequired = !(a.End1.Multiplicity == Multiplicity.ZeroOrOne || a.End2.Multiplicity == Multiplicity.ZeroOrOne);
             var isRequiredStr = isRequired ? "true" : "false";
@@ -191,19 +197,35 @@ public static class ContextEmitter
             var end1ClassRef = CsKeywords.Escape(a.End1.ClassName);
             var end1NavRef = CsKeywords.Escape(a.End1.Name);
             var end2NavRef = CsKeywords.Escape(a.End2.Name);
-
-            sb.Append("            modelBuilder.Entity<").Append(end1ClassRef)
-              .Append(">().HasMany(x => x.").Append(end2NavRef)
-              .Append(").WithOne(op => op.").Append(end1NavRef)
-              .Append(").HasForeignKey(@\"").Append(fkProperty)
-              .Append("\").IsRequired(").Append(isRequiredStr).Append(");\r\n");
-
             var end2ClassRef = CsKeywords.Escape(a.End2.ClassName);
-            sb.Append("            modelBuilder.Entity<").Append(end2ClassRef)
-              .Append(">().HasOne(x => x.").Append(end1NavRef)
-              .Append(").WithMany(op => op.").Append(end2NavRef)
-              .Append(").HasForeignKey(@\"").Append(fkProperty)
-              .Append("\").IsRequired(").Append(isRequiredStr).Append(");\r\n");
+
+            var cascadeSuffix = a.CascadeDelete ? ".OnDelete(DeleteBehavior.Cascade)" : "";
+
+            if (a.Cardinality == Cardinality.OneToOne)
+            {
+                sb.Append("            modelBuilder.Entity<").Append(end1ClassRef)
+                  .Append(">().HasOne(x => x.").Append(end2NavRef)
+                  .Append(").WithOne(op => op.").Append(end1NavRef)
+                  .Append(").HasForeignKey<").Append(end2ClassRef).Append(">(").Append(fkArgs)
+                  .Append(").IsRequired(").Append(isRequiredStr).Append(")")
+                  .Append(cascadeSuffix).Append(";\r\n");
+            }
+            else
+            {
+                sb.Append("            modelBuilder.Entity<").Append(end1ClassRef)
+                  .Append(">().HasMany(x => x.").Append(end2NavRef)
+                  .Append(").WithOne(op => op.").Append(end1NavRef)
+                  .Append(").HasForeignKey(").Append(fkArgs)
+                  .Append(").IsRequired(").Append(isRequiredStr).Append(")")
+                  .Append(cascadeSuffix).Append(";\r\n");
+
+                sb.Append("            modelBuilder.Entity<").Append(end2ClassRef)
+                  .Append(">().HasOne(x => x.").Append(end1NavRef)
+                  .Append(").WithMany(op => op.").Append(end2NavRef)
+                  .Append(").HasForeignKey(").Append(fkArgs)
+                  .Append(").IsRequired(").Append(isRequiredStr).Append(")")
+                  .Append(cascadeSuffix).Append(";\r\n");
+            }
         }
 
         sb.Append("        }\r\n");

@@ -172,7 +172,7 @@ public static class EfmlMerger
         $"{c.Schema}|{Unquote(c.Table)}";
 
     private static string AssocFingerprint(EfAssociation a) =>
-        $"{a.End1.ClassName}|{a.End1.PropertyName}|{a.End2.ClassName}|{a.End2.PropertyName}";
+        $"{a.End1.ClassName}|{string.Join(",", a.End1.PropertyNames)}|{a.End2.ClassName}|{string.Join(",", a.End2.PropertyNames)}";
 
     private static string Unquote(string s) =>
         s.Length >= 2 && s.StartsWith('`') && s.EndsWith('`') ? s[1..^1] : s;

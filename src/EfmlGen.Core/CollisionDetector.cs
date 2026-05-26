@@ -108,7 +108,41 @@ public static class CollisionDetector
             }
         }
 
+        // 7. Invalid C# identifier characters — DB allows names that C# does not (leading digit,
+        // dashes, spaces, dots, etc). We do not auto-sanitize because policy is to preserve DB
+        // names; flag as Error so the user renames the identifier in efml before generation.
+        foreach (var c in model.Classes)
+        {
+            if (!string.IsNullOrWhiteSpace(c.Name) && !IsValidCSharpIdentifier(c.Name))
+                warnings.Add(new Warning(Severity.Error,
+                    $"Class '{c.Name}' is not a valid C# identifier (table '{c.Table}') — generated .cs will not compile. Rename in efml."));
+            foreach (var p in c.AllProperties)
+            {
+                if (!string.IsNullOrWhiteSpace(p.Name) && !IsValidCSharpIdentifier(p.Name))
+                    warnings.Add(new Warning(Severity.Error,
+                        $"Property '{c.Name}.{p.Name}' is not a valid C# identifier (column '{p.Column.Name}') — generated .cs will not compile. Rename in efml."));
+            }
+        }
+
         return warnings;
+    }
+
+    /// <summary>
+    /// C# identifier rules (simplified): first char must be letter or '_';
+    /// remaining chars must be letter, digit, or '_'. Unicode letters are accepted.
+    /// Does NOT check for reserved keywords (handled separately by CsKeywords.Escape).
+    /// </summary>
+    public static bool IsValidCSharpIdentifier(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return false;
+        var first = name[0];
+        if (first != '_' && !char.IsLetter(first)) return false;
+        for (int i = 1; i < name.Length; i++)
+        {
+            var c = name[i];
+            if (c != '_' && !char.IsLetterOrDigit(c)) return false;
+        }
+        return true;
     }
 
     private static IEnumerable<string> GetNavNamesOnClass(EfAssociation a, string className)

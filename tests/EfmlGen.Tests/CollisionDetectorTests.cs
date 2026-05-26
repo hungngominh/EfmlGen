@@ -89,6 +89,46 @@ public class CollisionDetectorTests
         Assert.Contains(ws, w => w.Message.Contains("Database"));
     }
 
+    [Theory]
+    [InlineData("1stName")]    // leading digit
+    [InlineData("user-id")]    // dash
+    [InlineData("customer name")]  // space
+    [InlineData("Order.Total")]    // dot
+    public void Validate_InvalidIdentifierProperty_Error(string badName)
+    {
+        var m = ModelWith(NewClass("Customer", (badName, badName)));
+        var ws = CollisionDetector.Validate(m);
+        Assert.Contains(ws, w => w.Severity == CollisionDetector.Severity.Error
+            && w.Message.Contains("not a valid C# identifier")
+            && w.Message.Contains(badName));
+    }
+
+    [Theory]
+    [InlineData("1Customer")]
+    [InlineData("Customer-Data")]
+    [InlineData("Customer Data")]
+    public void Validate_InvalidIdentifierClass_Error(string badName)
+    {
+        var m = ModelWith(NewClass(badName));
+        var ws = CollisionDetector.Validate(m);
+        Assert.Contains(ws, w => w.Severity == CollisionDetector.Severity.Error
+            && w.Message.Contains("not a valid C# identifier")
+            && w.Message.Contains(badName));
+    }
+
+    [Theory]
+    [InlineData("Customer")]
+    [InlineData("_private")]
+    [InlineData("Order2")]
+    [InlineData("My_Table")]
+    [InlineData("class")]      // reserved keyword is still a valid identifier (gets @-escaped)
+    public void Validate_ValidIdentifier_NoIdentifierError(string okName)
+    {
+        var m = ModelWith(NewClass(okName));
+        var ws = CollisionDetector.Validate(m);
+        Assert.DoesNotContain(ws, w => w.Message.Contains("not a valid C# identifier"));
+    }
+
     [Fact]
     public void Validate_NavCollidesWithColumn_Error()
     {

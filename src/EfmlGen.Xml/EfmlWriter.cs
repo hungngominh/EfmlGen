@@ -70,6 +70,17 @@ public static class EfmlWriter
         foreach (var p in c.Properties)
             el.Add(WriteProperty(p.IsConcurrencyToken ? "concurrency" : "property", p));
 
+        foreach (var idx in c.Indexes)
+        {
+            var iel = new XElement("index",
+                new XAttribute("name", idx.Name));
+            if (idx.IsUnique)
+                iel.SetAttributeValue("unique", "True");
+            foreach (var cn in idx.ColumnNames)
+                iel.Add(new XElement("column", new XAttribute("name", cn)));
+            el.Add(iel);
+        }
+
         return el;
     }
 
@@ -86,6 +97,8 @@ public static class EfmlWriter
         if (p.ValidateMaxLength.HasValue)
             el.SetAttributeValue(P1 + "ValidateMaxLength", p.ValidateMaxLength.Value.ToString(CultureInfo.InvariantCulture));
         el.SetAttributeValue(P1 + "ValidateRequired", p.ValidateRequired ? "true" : "false");
+        if (p.IsRowVersion)
+            el.SetAttributeValue(P1 + "IsRowVersion", "True");
         el.SetAttributeValue(P1 + "Guid", p.Guid);
 
         el.Add(WriteColumn(p.Column));
@@ -99,6 +112,8 @@ public static class EfmlWriter
 
         if (!string.IsNullOrEmpty(col.Default))
             el.SetAttributeValue("default", col.Default);
+        if (!string.IsNullOrEmpty(col.Computed))
+            el.SetAttributeValue("computed", col.Computed);
         el.SetAttributeValue("not-null", col.NotNull ? "True" : "False");
         if (col.Length.HasValue)
             el.SetAttributeValue("length", col.Length.Value.ToString(CultureInfo.InvariantCulture));
@@ -120,6 +135,9 @@ public static class EfmlWriter
             new XAttribute("cardinality", a.Cardinality.ToString()),
             new XAttribute(P1 + "Guid", a.Guid));
 
+        if (a.CascadeDelete)
+            el.SetAttributeValue(P1 + "CascadeDelete", "True");
+
         el.Add(WriteEnd("end1", a.End1));
         el.Add(WriteEnd("end2", a.End2));
         return el;
@@ -138,7 +156,15 @@ public static class EfmlWriter
         el.SetAttributeValue("lazy", e.Lazy ? "True" : "False");
         el.SetAttributeValue(P1 + "Guid", e.Guid);
 
-        el.Add(new XElement("property", new XAttribute("name", e.PropertyName)));
+        if (e.PropertyNames.Count == 0)
+        {
+            el.Add(new XElement("property", new XAttribute("name", "")));
+        }
+        else
+        {
+            foreach (var pn in e.PropertyNames)
+                el.Add(new XElement("property", new XAttribute("name", pn)));
+        }
         return el;
     }
 }

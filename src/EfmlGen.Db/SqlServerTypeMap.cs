@@ -94,6 +94,17 @@ internal static class SqlServerTypeMap
             "image" => new(EfType.Blob, "image", null, null, null, false),
             "rowversion" or "timestamp" => new(EfType.Blob, "rowversion", null, null, null, false),
 
+            // Spatial / hierarchy: CLR type would be SqlHierarchyId/Geography/Geometry from
+            // Microsoft.SqlServer.Types or NetTopologySuite. Out-of-box we project them to
+            // byte[] (their binary serialization) so the entity compiles without extra refs.
+            // The sql-type is preserved so EF round-trips the column as the original type.
+            "hierarchyid" => new(EfType.Blob, "hierarchyid", null, null, null, false),
+            "geography" => new(EfType.Blob, "geography", null, null, null, false),
+            "geometry" => new(EfType.Blob, "geometry", null, null, null, false),
+
+            // sql_variant: no first-class CLR mapping. Fallback to string so user can override.
+            "sql_variant" => new(EfType.String, "sql_variant", null, null, null, false),
+
             // Unknown → preserve store-type, treat as unicode string
             _ => new(EfType.String, baseName, null, null, null, true)
         };

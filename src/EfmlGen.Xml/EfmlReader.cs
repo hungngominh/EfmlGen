@@ -73,6 +73,22 @@ public static class EfmlReader
         foreach (var cEl in el.Elements("concurrency"))
             c.Properties.Add(ReadProperty(cEl, isConcurrencyToken: true));
 
+        foreach (var iEl in el.Elements("index"))
+        {
+            var idx = new EfIndex
+            {
+                Name = iEl.Attribute("name")?.Value ?? "",
+                IsUnique = ParseBool(iEl.Attribute("unique")?.Value)
+            };
+            foreach (var col in iEl.Elements("column"))
+            {
+                var cn = col.Attribute("name")?.Value;
+                if (!string.IsNullOrEmpty(cn))
+                    idx.ColumnNames.Add(cn);
+            }
+            c.Indexes.Add(idx);
+        }
+
         return c;
     }
 
@@ -87,7 +103,8 @@ public static class EfmlReader
             ValidateRequired = ParseBool(el.Attribute(P1 + "ValidateRequired")?.Value),
             ValidateMaxLength = ParseIntNullable(el.Attribute(P1 + "ValidateMaxLength")?.Value),
             Guid = ParseGuid(el.Attribute(P1 + "Guid")?.Value),
-            IsConcurrencyToken = isConcurrencyToken
+            IsConcurrencyToken = isConcurrencyToken,
+            IsRowVersion = ParseBool(el.Attribute(P1 + "IsRowVersion")?.Value)
         };
 
         var col = el.Element("column");
@@ -103,6 +120,7 @@ public static class EfmlReader
             Name = el.Attribute("name")?.Value ?? "",
             NotNull = ParseBool(el.Attribute("not-null")?.Value),
             Default = el.Attribute("default")?.Value,
+            Computed = el.Attribute("computed")?.Value,
             SqlType = el.Attribute("sql-type")?.Value,
             Length = ParseIntNullable(el.Attribute("length")?.Value),
             Precision = ParseIntNullable(el.Attribute("precision")?.Value),
@@ -117,7 +135,8 @@ public static class EfmlReader
         {
             Name = el.Attribute("name")?.Value ?? "",
             Cardinality = ParseCardinality(el.Attribute("cardinality")?.Value),
-            Guid = ParseGuid(el.Attribute(P1 + "Guid")?.Value)
+            Guid = ParseGuid(el.Attribute(P1 + "Guid")?.Value),
+            CascadeDelete = ParseBool(el.Attribute(P1 + "CascadeDelete")?.Value)
         };
 
         var end1 = el.Element("end1");
@@ -130,7 +149,7 @@ public static class EfmlReader
 
     private static EfAssociationEnd ReadEnd(XElement el)
     {
-        return new EfAssociationEnd
+        var end = new EfAssociationEnd
         {
             Multiplicity = ParseMultiplicity(el.Attribute("multiplicity")?.Value),
             Name = el.Attribute("name")?.Value ?? "",
@@ -138,9 +157,15 @@ public static class EfmlReader
             RelationClass = el.Attribute("relation-class")?.Value ?? "",
             Constrained = ParseBool(el.Attribute("constrained")?.Value),
             Lazy = ParseBool(el.Attribute("lazy")?.Value),
-            Guid = ParseGuid(el.Attribute(P1 + "Guid")?.Value),
-            PropertyName = el.Element("property")?.Attribute("name")?.Value ?? ""
+            Guid = ParseGuid(el.Attribute(P1 + "Guid")?.Value)
         };
+        foreach (var prop in el.Elements("property"))
+        {
+            var name = prop.Attribute("name")?.Value;
+            if (!string.IsNullOrEmpty(name))
+                end.PropertyNames.Add(name);
+        }
+        return end;
     }
 
     private static Guid ParseGuid(string? s) =>

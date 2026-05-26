@@ -76,6 +76,9 @@ public static class EntityEmitter
             sb.Append(' ').Append(CsKeywords.Escape(nav.Name)).Append(" { get; set; }\r\n");
         }
 
+        if (ctx.GenerateIndexMethods)
+            EmitIndexMethods(sb, classRef, cls);
+
         sb.Append("\r\n");
         sb.Append("        #region Extensibility Method Definitions\r\n");
         sb.Append("\r\n");
@@ -96,5 +99,58 @@ public static class EntityEmitter
           .Append(' ')
           .Append(CsKeywords.Escape(p.Name))
           .Append(" { get; set; }\r\n");
+    }
+
+    private static void EmitIndexMethods(StringBuilder sb, string classRef, EfClass cls)
+    {
+        foreach (var idx in cls.Indexes)
+        {
+            var props = new List<EfProperty>(idx.ColumnNames.Count);
+            foreach (var col in idx.ColumnNames)
+            {
+                var p = FindPropertyByColumn(cls, col);
+                if (p != null) props.Add(p);
+            }
+            if (props.Count == 0) continue;
+
+            var suffix = string.Concat(props.ConvertAll(p => p.Name));
+            var paramList = string.Join(", ", props.ConvertAll(p =>
+                TypeMap.CSharpTypeWithNullability(p) + " " + ToCamel(p.Name)));
+            var lambdaBody = string.Join(" && ", props.ConvertAll(p =>
+                $"x.{CsKeywords.Escape(p.Name)} == {ToCamel(p.Name)}"));
+
+            sb.Append("\r\n");
+            if (idx.IsUnique)
+            {
+                sb.Append("        public static ").Append(classRef).Append("? GetBy").Append(suffix)
+                  .Append("(IQueryable<").Append(classRef).Append("> queryable, ").Append(paramList).Append(")\r\n");
+                sb.Append("            => queryable.FirstOrDefault(x => ").Append(lambdaBody).Append(");\r\n");
+            }
+            else
+            {
+                sb.Append("        public static IQueryable<").Append(classRef).Append("> GetBy").Append(suffix)
+                  .Append("(IQueryable<").Append(classRef).Append("> queryable, ").Append(paramList).Append(")\r\n");
+                sb.Append("            => queryable.Where(x => ").Append(lambdaBody).Append(");\r\n");
+            }
+        }
+    }
+
+    private static EfProperty? FindPropertyByColumn(EfClass cls, string columnName)
+    {
+        foreach (var p in cls.AllProperties)
+        {
+            var n = p.Column.Name;
+            if (n.Length >= 2 && n[0] == '`' && n[^1] == '`') n = n[1..^1];
+            if (string.Equals(n, columnName, System.StringComparison.OrdinalIgnoreCase))
+                return p;
+        }
+        return null;
+    }
+
+    private static string ToCamel(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return name;
+        if (char.IsLower(name[0])) return name;
+        return char.ToLowerInvariant(name[0]) + name[1..];
     }
 }

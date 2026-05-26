@@ -15,7 +15,7 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>EfmlGen.Designer</AssemblyName>
     <RootNamespace>EfmlGen.Wpf</RootNamespace>
-    <Version>0.4.0</Version>
+    <Version>0.4.1</Version>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
   </PropertyGroup>
 

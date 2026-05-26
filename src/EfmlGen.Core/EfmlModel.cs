@@ -36,6 +36,7 @@ public sealed class EfClass
     public Guid Guid { get; set; }
     public EfProperty Id { get; set; } = null!;
     public List<EfProperty> Properties { get; } = new();
+    public List<EfIndex> Indexes { get; } = new();
 
     public IEnumerable<EfProperty> AllProperties
     {
@@ -45,6 +46,13 @@ public sealed class EfClass
             foreach (var p in Properties) yield return p;
         }
     }
+}
+
+public sealed class EfIndex
+{
+    public string Name { get; set; } = "";
+    public bool IsUnique { get; set; }
+    public List<string> ColumnNames { get; } = new();
 }
 
 public sealed class EfProperty
@@ -57,6 +65,7 @@ public sealed class EfProperty
     public int? ValidateMaxLength { get; set; }
     public Guid Guid { get; set; }
     public bool IsConcurrencyToken { get; set; }
+    public bool IsRowVersion { get; set; }
     public EfColumn Column { get; set; } = new();
 }
 
@@ -65,6 +74,7 @@ public sealed class EfColumn
     public string Name { get; set; } = "";
     public bool NotNull { get; set; }
     public string? Default { get; set; }
+    public string? Computed { get; set; }
     public string? SqlType { get; set; }
     public int? Length { get; set; }
     public int? Precision { get; set; }
@@ -77,6 +87,7 @@ public sealed class EfAssociation
     public string Name { get; set; } = "";
     public Cardinality Cardinality { get; set; }
     public Guid Guid { get; set; }
+    public bool CascadeDelete { get; set; }
     public EfAssociationEnd End1 { get; set; } = new();
     public EfAssociationEnd End2 { get; set; } = new();
 }
@@ -90,7 +101,20 @@ public sealed class EfAssociationEnd
     public bool Constrained { get; set; }
     public bool Lazy { get; set; }
     public Guid Guid { get; set; }
-    public string PropertyName { get; set; } = "";
+    public List<string> PropertyNames { get; } = new();
+
+    /// <summary>
+    /// Convenience accessor for the first property name. For composite FKs use <see cref="PropertyNames"/>.
+    /// </summary>
+    public string PropertyName
+    {
+        get => PropertyNames.Count > 0 ? PropertyNames[0] : "";
+        set
+        {
+            PropertyNames.Clear();
+            if (!string.IsNullOrEmpty(value)) PropertyNames.Add(value);
+        }
+    }
 }
 
 public enum EfType
