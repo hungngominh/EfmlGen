@@ -174,12 +174,17 @@ public static class ContextEmitter
               .Append(")");
 
         if (!string.IsNullOrEmpty(p.Column.Computed))
-            sb.Append(".HasComputedColumnSql(@\"").Append(p.Column.Computed).Append("\")");
+            sb.Append(".HasComputedColumnSql(@\"").Append(EscapeVerbatim(p.Column.Computed)).Append("\")");
         else if (!string.IsNullOrEmpty(p.Column.Default))
-            sb.Append(".HasDefaultValueSql(@\"").Append(p.Column.Default).Append("\")");
+            sb.Append(".HasDefaultValueSql(@\"").Append(EscapeVerbatim(p.Column.Default)).Append("\")");
 
         sb.Append(";\r\n");
     }
+
+    // Escape `"` for inclusion inside a C# verbatim string (@"...").
+    // Raw SQL from columns like PG sequences contains `"` around identifiers, e.g. nextval('dbo."X_seq"'::regclass).
+    private static string EscapeVerbatim(string value)
+        => value.Replace("\"", "\"\"");
 
     private static void EmitRelationshipsMapping(StringBuilder sb, EfmlModel model)
     {

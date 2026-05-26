@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="EfmlGen.Vsix.bf990f5e-756c-4eab-a401-18dddfbf8cb2" Version="0.4.2" Language="en-US" Publisher="EfmlGen" />
+    <Identity Id="EfmlGen.Vsix.bf990f5e-756c-4eab-a401-18dddfbf8cb2" Version="0.4.3" Language="en-US" Publisher="EfmlGen" />
     <DisplayName>EfmlGen</DisplayName>
     <Description xml:space="preserve">Tích hợp EfmlGen vào Visual Studio 2022 — thay thế Devart Entity Developer cho workflow DB → .efml → .cs (Entity Framework Core, PostgreSQL + SQL Server).</Description>
     <Icon>Resources\Logo.png</Icon>

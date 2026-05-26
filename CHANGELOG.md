@@ -2,6 +2,19 @@
 
 Toàn bộ thay đổi đáng chú ý của EfmlGen được liệt kê tại đây. Format theo [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning theo [SemVer](https://semver.org/).
 
+## [0.4.3] — 2026-05-26
+
+### Fixed — Generated context không compile khi DB có PG sequence default
+- `ContextEmitter` emit thẳng `Column.Default`/`Column.Computed` vào C# verbatim string `@"..."` mà **không escape `"`**. Với PostgreSQL serial column, scaffolder trả `nextval('dbo."Xxx_seq"'::regclass)` → output `@"nextval('dbo."Xxx_seq"'::regclass)"` đóng string sai chỗ → compile fail (CS1003 hàng loạt).
+- Thêm helper `EscapeVerbatim(s) => s.Replace("\"", "\"\"")` và áp dụng cho cả `HasComputedColumnSql` lẫn `HasDefaultValueSql`.
+
+### Changed — Bỏ `HasDefaultValueSql(nextval(...))` thừa cho serial column
+- EF Core Npgsql scaffolder trả về cả `ValueGenerated=OnAdd` **và** `DefaultValueSql="nextval(...)"` cho `serial`/`bigserial`/`smallserial`. Hai info này trùng nghĩa — `ValueGeneratedOnAdd()` đã đủ để EF hiểu identity behavior.
+- `DatabaseModelMapper.MapProperty` giờ detect pattern (`nextval(` cho Postgres, `next value for ` cho SQL Server) và drop `Default` khi `ValueGenerated==OnAdd` → output gọn, đồng nhất với SQL Server IDENTITY (vốn dĩ không có DefaultValueSql).
+
+### Build
+- Bump CLI + WPF + installer + VSIX manifest sang `0.4.3`.
+
 ## [0.4.2] — 2026-05-26
 
 ### Fixed — v0.4.1 block GenCode khi DB có tên không hợp lệ làm C# identifier

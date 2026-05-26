@@ -21,7 +21,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>efmlgen</ToolCommandName>
     <PackageId>EfmlGen</PackageId>
-    <Version>0.4.2</Version>
+    <Version>0.4.3</Version>
     <Description>Generate EF Core C# entities + DbContext from Devart Entity Developer .efml or from a database (Postgres MVP).</Description>
     <PackageOutputPath>../../nupkg</PackageOutputPath>
   </PropertyGroup>

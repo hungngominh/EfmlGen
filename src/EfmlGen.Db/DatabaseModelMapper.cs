@@ -214,6 +214,14 @@ public static class DatabaseModelMapper
         if (isRowVersion && valueGenerated == null)
             valueGenerated = "OnAddOrUpdate";
 
+        // Drop DefaultValueSql for server-side identity/serial columns. EF scaffolder reports
+        // `nextval('...'::regclass)` (Postgres) for `serial`/`bigserial` even though
+        // ValueGenerated=OnAdd already encodes the behavior — emitting both produces redundant
+        // (and harder-to-read) mapping code.
+        var defaultSql = col.DefaultValueSql;
+        if (!string.IsNullOrEmpty(defaultSql) && valueGenerated == "OnAdd" && IsSequenceDefault(defaultSql))
+            defaultSql = null;
+
         return new EfProperty
         {
             Name = col.Name,
@@ -229,7 +237,7 @@ public static class DatabaseModelMapper
             {
                 Name = $"`{col.Name}`",
                 NotNull = !col.IsNullable,
-                Default = col.DefaultValueSql,
+                Default = defaultSql,
                 Computed = col.ComputedColumnSql,
                 SqlType = t.SqlType,
                 Length = t.Length,
@@ -250,6 +258,19 @@ public static class DatabaseModelMapper
         if (opt.Provider != DbProvider.SqlServer) return false;
         var st = (col.StoreType ?? "").ToLowerInvariant();
         return st == "rowversion" || st == "timestamp";
+    }
+
+    // Recognize provider-emitted sequence/identity default expressions. Combined with
+    // ValueGenerated=OnAdd, these mean "server-generated identity" — EF Core needs no explicit
+    // HasDefaultValueSql, so we drop them to avoid emitting redundant mapping code.
+    private static bool IsSequenceDefault(string sql)
+    {
+        var s = sql.TrimStart().ToLowerInvariant();
+        // Postgres: nextval('...'::regclass) for serial/bigserial/smallserial
+        if (s.StartsWith("nextval(")) return true;
+        // SQL Server scaffolder typically omits DefaultValueSql for IDENTITY columns, but be defensive.
+        if (s.Contains("next value for ")) return true;
+        return false;
     }
 
     private static EfAssociation? MapAssociation(
