@@ -2,6 +2,15 @@
 
 Toàn bộ thay đổi đáng chú ý của EfmlGen được liệt kê tại đây. Format theo [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning theo [SemVer](https://semver.org/).
 
+## [0.4.4] — 2026-06-03
+
+### Fixed — EfmlMerger crash khi `.efml` có duplicate association name/fingerprint
+- `Merge()` gọi `ToDictionary` trực tiếp trên `existing.Associations` → `ArgumentException` nếu file có 2 association trùng tên hoặc trùng structural fingerprint (vd sau khi edit tay hoặc merge conflict).
+- Đổi sang `GroupBy(...).ToDictionary(g => g.Key, g => g.First())` để tolerate duplicates — first-one-wins, phần còn lại bị bỏ qua thay vì crash.
+
+### Build
+- Bump CLI + WPF + installer + VSIX manifest sang `0.4.4`.
+
 ## [0.4.3] — 2026-05-26
 
 ### Fixed — Generated context không compile khi DB có PG sequence default

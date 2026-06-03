@@ -130,8 +130,13 @@ public static class EfmlMerger
         }
 
         // Associations: match by Name first, then by structural fingerprint
-        var oldAssocByName = existing.Associations.ToDictionary(a => a.Name, a => a, StringComparer.OrdinalIgnoreCase);
-        var oldAssocByFingerprint = existing.Associations.ToDictionary(AssocFingerprint, a => a, StringComparer.OrdinalIgnoreCase);
+        // Use GroupBy+First to tolerate duplicate names/fingerprints in the existing efml.
+        var oldAssocByName = existing.Associations
+            .GroupBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        var oldAssocByFingerprint = existing.Associations
+            .GroupBy(AssocFingerprint, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         var newAssocNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var newAssoc in fromDb.Associations)
