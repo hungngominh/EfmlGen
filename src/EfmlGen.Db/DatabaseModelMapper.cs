@@ -66,6 +66,7 @@ public static class DatabaseModelMapper
         // Build associations, dedup by structural fingerprint
         // (Postgres metadata occasionally returns the same logical FK multiple times)
         var seenFingerprints = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
+        var seenAssocNames = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
         foreach (var table in dbModel.Tables)
         {
             foreach (var fk in table.ForeignKeys)
@@ -80,6 +81,7 @@ public static class DatabaseModelMapper
                 var fp = $"{assoc.End1.ClassName}|{string.Join(",", assoc.End1.PropertyNames)}|{assoc.End2.ClassName}|{string.Join(",", assoc.End2.PropertyNames)}";
                 if (!seenFingerprints.Add(fp)) continue;  // skip duplicate
 
+                assoc.Name = MakeUniqueName(assoc.Name, seenAssocNames);
                 model.Associations.Add(assoc);
             }
         }
@@ -352,6 +354,15 @@ public static class DatabaseModelMapper
             assoc.End2.PropertyNames.Add(fc.Name);
 
         return assoc;
+    }
+
+    private static string MakeUniqueName(string name, System.Collections.Generic.HashSet<string> seen)
+    {
+        string result = name;
+        int count = 1;
+        while (!seen.Add(result))
+            result = name + count++;
+        return result;
     }
 
     private static bool IsOneToOneFk(DatabaseTable dependentTable, DatabaseForeignKey fk)
