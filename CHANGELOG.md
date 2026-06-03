@@ -8,6 +8,10 @@ Toàn bộ thay đổi đáng chú ý của EfmlGen được liệt kê tại đ
 - `Merge()` gọi `ToDictionary` trực tiếp trên `existing.Associations` → `ArgumentException` nếu file có 2 association trùng tên hoặc trùng structural fingerprint (vd sau khi edit tay hoặc merge conflict).
 - Đổi sang `GroupBy(...).ToDictionary(g => g.Key, g => g.First())` để tolerate duplicates — first-one-wins, phần còn lại bị bỏ qua thay vì crash.
 
+### Fixed — DatabaseModelMapper sinh ra association name trùng nhau
+- Khi map từ DB, nhiều FK có thể tạo ra association cùng tên (vd 2 FK từ bảng `Order` sang `User`) → tên trùng gây lỗi downstream.
+- Thêm `MakeUniqueName` — nếu tên đã dùng thì thêm suffix số: `Order_User`, `Order_User1`, `Order_User2`…
+
 ### Build
 - Bump CLI + WPF + installer + VSIX manifest sang `0.4.4`.
 
