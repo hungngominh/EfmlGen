@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\EfmlGen.Core\EfmlGen.Core.csproj" />
+    <ProjectReference Include="..\..\src\EfmlGen.Db\EfmlGen.Db.csproj" />
     <ProjectReference Include="..\..\src\EfmlGen.Xml\EfmlGen.Xml.csproj" />
     <ProjectReference Include="..\..\src\EfmlGen.Templates\EfmlGen.Templates.csproj" />
   </ItemGroup>

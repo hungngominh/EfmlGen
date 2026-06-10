@@ -54,8 +54,9 @@ public static class EntityEmitter
         sb.Append("        }\r\n");
         sb.Append("\r\n");
 
-        // Id first
-        EmitProperty(sb, cls.Id);
+        // Id first (views are keyless → no Id)
+        if (cls.Id != null!)
+            EmitProperty(sb, cls.Id);
 
         // Then all properties
         foreach (var p in cls.Properties)

@@ -33,7 +33,7 @@ public class EntityEmitterTests
         var navsByClass = AssociationLayout.Build(model);
         var navs = navsByClass.TryGetValue(className, out var n) ? n : new();
 
-        var ctx = new GenerationContext { Timestamp = FixedTimestamp, Provider = "Npgsql" };
+        var ctx = new GenerationContext { Timestamp = FixedTimestamp, Provider = "Npgsql", ToolVersion = "0.5.0" };
         var generated = EntityEmitter.Emit(model, cls, navs, ctx);
 
         var expected = File.ReadAllText(goldenPath);

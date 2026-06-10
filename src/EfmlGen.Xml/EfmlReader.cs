@@ -41,7 +41,15 @@ public static class EfmlReader
         };
 
         foreach (var classEl in root.Elements("class"))
+        {
+            if (classEl.Attribute("name")?.Value == "$ComplexTypes")
+            {
+                foreach (var compEl in classEl.Elements("component"))
+                    model.ComplexTypes.Add(ReadComplexType(compEl));
+                continue;
+            }
             model.Classes.Add(ReadClass(classEl));
+        }
 
         var assocs = root.Element("associations");
         if (assocs != null)
@@ -49,6 +57,9 @@ public static class EfmlReader
             foreach (var aEl in assocs.Elements("association"))
                 model.Associations.Add(ReadAssociation(aEl));
         }
+
+        foreach (var mEl in root.Elements("method"))
+            model.StoredProcedures.Add(ReadMethod(mEl));
 
         return model;
     }
@@ -61,7 +72,8 @@ public static class EfmlReader
             EntitySet = el.Attribute("entity-set")?.Value ?? "",
             Table = el.Attribute("table")?.Value ?? "",
             Schema = el.Attribute("schema")?.Value ?? "",
-            Guid = ParseGuid(el.Attribute(P1 + "Guid")?.Value)
+            Guid = ParseGuid(el.Attribute(P1 + "Guid")?.Value),
+            IsView = ParseBool(el.Attribute("is-view")?.Value)
         };
 
         var idEl = el.Element("id");
@@ -128,6 +140,71 @@ public static class EfmlReader
             Unicode = ParseBool(el.Attribute(P1 + "unicode")?.Value)
         };
     }
+
+    private static EfComplexType ReadComplexType(XElement el)
+    {
+        var ct = new EfComplexType
+        {
+            Name = el.Attribute("class")?.Value ?? "",
+            Guid = ParseGuid(el.Attribute(P1 + "Guid")?.Value)
+        };
+        foreach (var pEl in el.Elements("property"))
+            ct.Properties.Add(ReadProperty(pEl));
+        return ct;
+    }
+
+    private static EfStoredProcedure ReadMethod(XElement el)
+    {
+        var sp = new EfStoredProcedure
+        {
+            Name = el.Attribute("name")?.Value ?? "",
+            Procedure = el.Attribute(P1 + "procedure")?.Value ?? "",
+            Guid = ParseGuid(el.Attribute(P1 + "Guid")?.Value)
+        };
+
+        var procName = sp.Procedure;
+        var dot = procName.LastIndexOf('.');
+        sp.Schema = dot > 0 ? procName.Substring(0, dot) : "";
+
+        var ret = el.Element("return");
+        if (ret != null)
+        {
+            sp.ReturnComplexType = ret.Attribute("class")?.Value;
+            foreach (var rp in ret.Elements("return-property"))
+                sp.ReturnProperties.Add(new EfReturnProperty
+                {
+                    Name = rp.Attribute("name")?.Value ?? "",
+                    Column = rp.Attribute("column")?.Value ?? ""
+                });
+        }
+
+        foreach (var prm in el.Elements("parameter"))
+            sp.Parameters.Add(ReadParameter(prm));
+
+        return sp;
+    }
+
+    private static EfParameter ReadParameter(XElement el)
+    {
+        return new EfParameter
+        {
+            Name = el.Attribute("name")?.Value ?? "",
+            Type = TypeMap.Parse(el.Attribute("type")?.Value ?? "String"),
+            SqlType = el.Attribute("sql-type")?.Value,
+            Length = ParseIntNullable(el.Attribute("length")?.Value),
+            Precision = ParseIntNullable(el.Attribute("precision")?.Value),
+            Scale = ParseIntNullable(el.Attribute("scale")?.Value),
+            Direction = ParseDirection(el.Attribute(P1 + "parameter-direction")?.Value)
+        };
+    }
+
+    private static EfParamDirection ParseDirection(string? s) => s switch
+    {
+        "InOut" => EfParamDirection.InputOutput,
+        "Out" => EfParamDirection.Output,
+        "ReturnValue" => EfParamDirection.ReturnValue,
+        _ => EfParamDirection.Input
+    };
 
     private static EfAssociation ReadAssociation(XElement el)
     {

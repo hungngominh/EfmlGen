@@ -25,6 +25,7 @@ public partial class MainWindow : Window
 
     private bool _suppressProfileFilter;
     private readonly string? _initialEfmlPath;
+    private UpdateInfo? _pendingUpdate;
 
     private static readonly string AppVersion =
         System.Reflection.Assembly.GetExecutingAssembly()
@@ -56,7 +57,90 @@ public partial class MainWindow : Window
                 LoadOrCreateProfileForEfml(_initialEfmlPath!);
             }
             SetStatus("Ready", busy: false);
+            _ = CheckForUpdatesAsync();
         };
+    }
+
+    /// <summary>
+    /// Fire-and-forget startup check against GitHub Releases. Reveals the Update button
+    /// only when a newer build exists; stays silent on offline/errors.
+    /// </summary>
+    private async Task CheckForUpdatesAsync()
+    {
+        var info = await UpdateChecker.CheckAsync(VersionInfo.Current);
+        if (info is null)
+            return;
+
+        _pendingUpdate = info;
+        Dispatcher.Invoke(() =>
+        {
+            UpdateButton.Content = $"⬇ Update to v{info.LatestVersion}";
+            UpdateButton.ToolTip =
+                $"Bản mới v{info.LatestVersion} đã có (bạn đang dùng v{info.CurrentVersion}). Bấm để tải và cài.";
+            UpdateButton.Visibility = Visibility.Visible;
+        });
+    }
+
+    private async void UpdateButton_Click(object sender, RoutedEventArgs e)
+    {
+        var info = _pendingUpdate;
+        if (info is null)
+            return;
+
+        if (string.IsNullOrEmpty(info.InstallerUrl))
+        {
+            OpenUrl(info.ReleaseUrl);
+            return;
+        }
+
+        var confirm = MessageBox.Show(this,
+            $"Tải và cài đặt bản mới v{info.LatestVersion}?\n\nỨng dụng sẽ đóng để trình cài đặt ghi đè.",
+            "Cập nhật EfmlGen", MessageBoxButton.OKCancel, MessageBoxImage.Question);
+        if (confirm != MessageBoxResult.OK)
+            return;
+
+        try
+        {
+            UpdateButton.IsEnabled = false;
+            var lastPercent = -1;
+            var progress = new Progress<double>(p =>
+            {
+                var pct = (int)(p * 100);
+                if (pct == lastPercent)
+                    return;
+                lastPercent = pct;
+                SetStatus($"Đang tải bản cập nhật… {pct}%", busy: true);
+            });
+            SetStatus("Đang tải bản cập nhật…", busy: true);
+
+            var installer = await Updater.DownloadInstallerAsync(info.InstallerUrl, info.LatestVersion, progress);
+
+            Updater.RunInstaller(installer);
+            Application.Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            UpdateButton.IsEnabled = true;
+            SetStatus("Tải bản cập nhật thất bại", busy: false);
+            MessageBox.Show(this,
+                $"Không tải được bản cập nhật:\n{ex.Message}\n\nBạn có thể tải thủ công từ trang Releases.",
+                "Cập nhật EfmlGen", MessageBoxButton.OK, MessageBoxImage.Warning);
+            OpenUrl(info.ReleaseUrl);
+        }
+    }
+
+    private static void OpenUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+            return;
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        catch
+        {
+            // best-effort; nothing actionable if the shell can't open a browser
+        }
     }
 
     /// <summary>
@@ -235,7 +319,6 @@ public partial class MainWindow : Window
             ? p.EfmlPath
             : (!string.IsNullOrEmpty(p.OutputDir) && !string.IsNullOrEmpty(p.ModelName)
                 ? Path.Combine(p.OutputDir, p.ModelName + ".efml") : "");
-        GenEfmlPathBox.Text = EfmlPathBox.Text;
         ContextClassBox.Text = p.ContextClass;
     }
 
@@ -246,13 +329,11 @@ public partial class MainWindow : Window
         SyncNavToSelectedTab();
 
         if (DiagramViewer is null) return;
-        if (MainTabs.SelectedIndex == 3)
+        if (MainTabs.SelectedIndex == 2)
         {
             if (string.IsNullOrWhiteSpace(DiagramViewer.CurrentEfmlPath))
             {
-                var fallback = !string.IsNullOrWhiteSpace(GenEfmlPathBox.Text)
-                    ? GenEfmlPathBox.Text
-                    : EfmlPathBox.Text;
+                var fallback = EfmlPathBox.Text;
                 if (!string.IsNullOrWhiteSpace(fallback))
                     DiagramViewer.CurrentEfmlPath = fallback;
             }
@@ -276,8 +357,7 @@ public partial class MainWindow : Window
         {
             0 => NavConnection,
             1 => NavScaffold,
-            2 => NavGenerate,
-            3 => NavDiagram,
+            2 => NavDiagram,
             _ => null
         };
         if (target != null && target.IsChecked != true) target.IsChecked = true;
@@ -393,7 +473,6 @@ public partial class MainWindow : Window
 
         LoadProfileIntoForm(profile);
         EfmlPathBox.Text = path;
-        GenEfmlPathBox.Text = path;
 
         Console.WriteLine($"Imported profile from {path}");
         Console.WriteLine($"  Name={profile.Name}, Provider={provider}, Namespace={profile.Namespace}");
@@ -564,7 +643,6 @@ public partial class MainWindow : Window
         if (dlg.ShowDialog(this) == true)
         {
             EfmlPathBox.Text = dlg.FileName;
-            GenEfmlPathBox.Text = dlg.FileName;
             OutputDirBox.Text = Path.GetDirectoryName(dlg.FileName) ?? "";
             // If the user picked an existing .efml, treat it as Import: auto-fill model name,
             // namespace, file base name and context class from the file so they don't have
@@ -605,70 +683,7 @@ public partial class MainWindow : Window
         SetStatus($"Loaded model from existing .efml ({model.Classes.Count} classes).");
     }
 
-    private async void Scaffold_Click(object sender, RoutedEventArgs e)
-    {
-        var profile = BuildProfileFromForm();
-        var connStr = ProfileStore.BuildConnectionString(profile, PasswordBox.Password);
-
-        var selectedTables = _tables.Where(t => t.IsSelected).Select(t => t.Name).ToArray();
-        if (selectedTables.Length == 0)
-        {
-            MessageBox.Show("Select at least one table from the list.", "Scaffold", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        var modelName = ModelNameBox.Text.Trim();
-        var ns = NamespaceBox.Text.Trim();
-        var efmlPath = EfmlPathBox.Text.Trim();
-        var fileBaseOverride = FileBaseNameBox.Text.Trim();
-        var overwrite = OverwriteChk.IsChecked == true;
-        var forceDateTime = ForceDateTimeChk.IsChecked == true;
-
-        if (string.IsNullOrEmpty(modelName) || string.IsNullOrEmpty(ns) || string.IsNullOrEmpty(efmlPath))
-        {
-            MessageBox.Show("Fill model name, namespace, and output efml path.", "Scaffold", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        var dbProvider = ToDbProvider(profile.Provider);
-        await RunAsync($"Scaffolding {selectedTables.Length} tables...", () =>
-        {
-            var schemas = profile.Schemas.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray();
-            var result = GenWorker.Scaffold(connStr, dbProvider, schemas, selectedTables, modelName, ns, ns, efmlPath, overwrite, forceDateTime,
-                fileBaseNameOverride: string.IsNullOrEmpty(fileBaseOverride) ? null : fileBaseOverride);
-            PrintMergeReport(result.MergeReport);
-            PrintWarnings(result.Warnings);
-
-            Dispatcher.Invoke(() =>
-            {
-                GenEfmlPathBox.Text = efmlPath;
-                if (string.IsNullOrEmpty(OutputDirBox.Text))
-                    OutputDirBox.Text = Path.GetDirectoryName(efmlPath) ?? "";
-            });
-        });
-    }
-
-    // ------------------- Generate tab -------------------
-
-    private void BrowseGenEfml_Click(object sender, RoutedEventArgs e)
-    {
-        var dlg = new OpenFileDialog
-        {
-            Filter = "Entity Developer Model (*.efml)|*.efml|All files (*.*)|*.*",
-            DefaultExt = "efml"
-        };
-        if (dlg.ShowDialog(this) == true)
-        {
-            GenEfmlPathBox.Text = dlg.FileName;
-            EfmlPathBox.Text = dlg.FileName;
-            if (string.IsNullOrEmpty(OutputDirBox.Text))
-                OutputDirBox.Text = Path.GetDirectoryName(dlg.FileName) ?? "";
-            // Picking an existing .efml here means the user wants to generate code for it —
-            // load model name / namespace / file base name so the Gen Code step has what it needs.
-            if (File.Exists(dlg.FileName))
-                TryImportEfmlMetadata(dlg.FileName);
-        }
-    }
+    // ------------------- Scaffold + Generate -------------------
 
     private void BrowseOutputDir_Click(object sender, RoutedEventArgs e)
     {
@@ -682,52 +697,87 @@ public partial class MainWindow : Window
         if (dlg.ShowDialog(this) == true) DataContextTemplateBox.Text = dlg.FileName;
     }
 
-    private async void GenCode_Click(object sender, RoutedEventArgs e)
+    private async void ScaffoldAndGen_Click(object sender, RoutedEventArgs e)
     {
-        var efmlPath = GenEfmlPathBox.Text.Trim();
-        var outDir = OutputDirBox.Text.Trim();
-        var contextClass = ContextClassBox.Text.Trim();
-        var dcTemplate = DataContextTemplateBox.Text.Trim();
-        var connStr = GenConnStringBox.Text;
+        var profile = BuildProfileFromForm();
+        var connStr = ProfileStore.BuildConnectionString(profile, PasswordBox.Password);
 
-        if (!File.Exists(efmlPath)) { MessageBox.Show($".efml file not found:\n{efmlPath}", "Gen-code", MessageBoxButton.OK, MessageBoxImage.Error); return; }
-        if (string.IsNullOrEmpty(outDir)) { MessageBox.Show("Pick output directory.", "Gen-code", MessageBoxButton.OK, MessageBoxImage.Information); return; }
-
-        if (string.IsNullOrEmpty(contextClass))
+        var selectedTables = _tables.Where(t => t.IsSelected).Select(t => t.Name).ToArray();
+        if (selectedTables.Length == 0)
         {
-            var model = EfmlReader.ReadFile(efmlPath);
-            contextClass = $"{model.Name}DataContext";
-            ContextClassBox.Text = contextClass;
+            MessageBox.Show("Select at least one table from the list.", "Scaffold + Generate", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
         }
 
-        // Snapshot ALL UI state on UI thread before bg work
-        var providerStr = ((ProviderCombo.SelectedItem as ComboBoxItem)?.Content?.ToString() == "SqlServer") ? "SqlServer" : "Npgsql";
+        var modelName = ModelNameBox.Text.Trim();
+        var ns = NamespaceBox.Text.Trim();
+        var efmlPath = EfmlPathBox.Text.Trim();
+        if (string.IsNullOrEmpty(modelName) || string.IsNullOrEmpty(ns) || string.IsNullOrEmpty(efmlPath))
+        {
+            MessageBox.Show("Fill model name, namespace, and output efml path.", "Scaffold + Generate", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        // Snapshot ALL UI state on the UI thread before background work.
+        var fileBaseOverride = FileBaseNameBox.Text.Trim();
+        var overwrite = OverwriteChk.IsChecked == true;
+        var forceDateTime = ForceDateTimeChk.IsChecked == true;
+        var dbProvider = ToDbProvider(profile.Provider);
+
+        // gen-code defaults to the .efml folder when no explicit output dir is given.
+        var outDir = OutputDirBox.Text.Trim();
+        if (string.IsNullOrEmpty(outDir))
+            outDir = Path.GetDirectoryName(Path.GetFullPath(efmlPath)) ?? "";
+        var contextClass = ContextClassBox.Text.Trim();
+        if (string.IsNullOrEmpty(contextClass))
+        {
+            contextClass = $"{modelName}DataContext";
+            ContextClassBox.Text = contextClass;
+        }
+        var dcTemplate = DataContextTemplateBox.Text.Trim();
+        var genConnStr = GenConnStringBox.Text;
+        var genProviderStr = profile.Provider == "SqlServer" ? "SqlServer" : "Npgsql";
         var skipDataContext = SkipDataContextChk.IsChecked == true;
         var skipInfo = SkipInfoChk.IsChecked == true;
         var force = ForceChk.IsChecked == true;
-        var contextClassLocal = contextClass;
-        var fileBaseOverride = FileBaseNameBox.Text.Trim();
+        var fileBaseArg = string.IsNullOrEmpty(fileBaseOverride) ? null : fileBaseOverride;
 
-        await RunAsync("Generating .cs files...", () =>
+        await RunAsync($"Scaffold + Generate ({selectedTables.Length} tables)...", () =>
         {
-            var result = GenWorker.GenCode(
-                efmlPath, outDir, providerStr, connStr,
-                contextClassLocal,
+            var schemas = profile.Schemas.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray();
+
+            Console.WriteLine("=== Scaffold ===");
+            var scaffold = GenWorker.Scaffold(connStr, dbProvider, schemas, selectedTables, modelName, ns, ns, efmlPath, overwrite, forceDateTime,
+                fileBaseNameOverride: fileBaseArg);
+            PrintMergeReport(scaffold.MergeReport);
+            PrintWarnings(scaffold.Warnings);
+
+            Console.WriteLine();
+            Console.WriteLine("=== Generate ===");
+            var gen = GenWorker.GenCode(
+                efmlPath, outDir, genProviderStr, genConnStr,
+                contextClass,
                 string.IsNullOrEmpty(dcTemplate) ? null : dcTemplate,
                 skipDataContext: skipDataContext,
                 skipInfo: skipInfo,
                 force: force,
                 timestamp: null,
-                fileBaseNameOverride: string.IsNullOrEmpty(fileBaseOverride) ? null : fileBaseOverride);
+                fileBaseNameOverride: fileBaseArg);
 
-            PrintWarnings(result.Warnings);
-            if (result.DeletedFiles.Count > 0)
+            PrintWarnings(gen.Warnings);
+            if (gen.DeletedFiles.Count > 0)
             {
-                Console.WriteLine($"Deleted {result.DeletedFiles.Count} stale .cs file(s):");
-                foreach (var f in result.DeletedFiles) Console.WriteLine($"  - {f}");
+                Console.WriteLine($"Deleted {gen.DeletedFiles.Count} stale .cs file(s):");
+                foreach (var f in gen.DeletedFiles) Console.WriteLine($"  - {f}");
             }
-            Console.WriteLine($"Generated {result.WrittenFiles.Count} files:");
-            foreach (var f in result.WrittenFiles) Console.WriteLine($"  {f}");
+            Console.WriteLine($"Generated {gen.WrittenFiles.Count} files:");
+            foreach (var f in gen.WrittenFiles) Console.WriteLine($"  {f}");
+
+            Dispatcher.Invoke(() =>
+            {
+                if (string.IsNullOrEmpty(OutputDirBox.Text))
+                    OutputDirBox.Text = outDir;
+            });
         });
     }
 

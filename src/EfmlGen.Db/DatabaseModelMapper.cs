@@ -130,14 +130,25 @@ public static class DatabaseModelMapper
 
     private static EfClass MapClass(DatabaseTable table, MapOptions opt)
     {
+        var isView = table is DatabaseView;
         var cls = new EfClass
         {
             Name = ApplyEntityNaming(table.Name, opt.EntityNaming),
             EntitySet = table.Name,
             Table = $"`{table.Name}`",
             Schema = table.Schema ?? "",
-            Guid = Guid.NewGuid()
+            Guid = Guid.NewGuid(),
+            IsView = isView
         };
+
+        // Views are keyless: all columns become regular properties, no Id, no synthesized PK,
+        // no index methods. The context emits .ToView() + .HasNoKey() for these.
+        if (isView)
+        {
+            foreach (var col in table.Columns)
+                cls.Properties.Add(MapProperty(col, opt));
+            return cls;
+        }
 
         var pkCols = table.PrimaryKey?.Columns ?? new System.Collections.Generic.List<DatabaseColumn>();
 

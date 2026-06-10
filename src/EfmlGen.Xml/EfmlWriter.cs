@@ -42,6 +42,9 @@ public static class EfmlWriter
         if (!string.IsNullOrEmpty(model.FileBaseName))
             root.Add(new XAttribute(P1 + "FileBaseName", model.FileBaseName));
 
+        if (model.ComplexTypes.Count > 0)
+            root.Add(WriteComplexTypes(model.ComplexTypes));
+
         foreach (var c in model.Classes)
             root.Add(WriteClass(c));
 
@@ -52,6 +55,9 @@ public static class EfmlWriter
                 assocs.Add(WriteAssociation(a));
             root.Add(assocs);
         }
+
+        foreach (var sp in model.StoredProcedures)
+            root.Add(WriteMethod(sp));
 
         return new XDocument(new XDeclaration("1.0", "utf-8", null), root);
     }
@@ -64,6 +70,9 @@ public static class EfmlWriter
             new XAttribute("table", c.Table),
             new XAttribute("schema", c.Schema),
             new XAttribute(P1 + "Guid", c.Guid));
+
+        if (c.IsView)
+            el.SetAttributeValue("is-view", "True");
 
         if (c.Id != null!)
             el.Add(WriteProperty("id", c.Id));
@@ -127,6 +136,73 @@ public static class EfmlWriter
 
         return el;
     }
+
+    private static XElement WriteComplexTypes(System.Collections.Generic.List<EfComplexType> complexTypes)
+    {
+        var el = new XElement("class", new XAttribute("name", "$ComplexTypes"));
+        foreach (var ct in complexTypes)
+        {
+            var comp = new XElement("component",
+                new XAttribute("class", ct.Name),
+                new XAttribute(P1 + "Guid", ct.Guid));
+            foreach (var p in ct.Properties)
+                comp.Add(WriteProperty("property", p));
+            el.Add(comp);
+        }
+        return el;
+    }
+
+    private static XElement WriteMethod(EfStoredProcedure sp)
+    {
+        var el = new XElement("method",
+            new XAttribute("name", sp.Name),
+            new XAttribute(P1 + "procedure", sp.Procedure),
+            new XAttribute(P1 + "Guid", sp.Guid));
+
+        if (!string.IsNullOrEmpty(sp.ReturnComplexType))
+        {
+            var ret = new XElement("return", new XAttribute("class", sp.ReturnComplexType!));
+            foreach (var rp in sp.ReturnProperties)
+                ret.Add(new XElement("return-property",
+                    new XAttribute("name", rp.Name),
+                    new XAttribute("column", rp.Column)));
+            el.Add(ret);
+        }
+
+        foreach (var prm in sp.Parameters)
+            el.Add(WriteParameter(prm));
+
+        return el;
+    }
+
+    private static XElement WriteParameter(EfParameter p)
+    {
+        var el = new XElement("parameter", new XAttribute("name", p.Name));
+
+        if (p.Direction != EfParamDirection.Input)
+            el.SetAttributeValue(P1 + "parameter-direction", ToDirectionString(p.Direction));
+
+        el.SetAttributeValue("type", TypeMap.ToEfml(p.Type));
+
+        if (!string.IsNullOrEmpty(p.SqlType))
+            el.SetAttributeValue("sql-type", p.SqlType);
+        if (p.Length.HasValue)
+            el.SetAttributeValue("length", p.Length.Value.ToString(CultureInfo.InvariantCulture));
+        if (p.Precision.HasValue)
+            el.SetAttributeValue("precision", p.Precision.Value.ToString(CultureInfo.InvariantCulture));
+        if (p.Scale.HasValue)
+            el.SetAttributeValue("scale", p.Scale.Value.ToString(CultureInfo.InvariantCulture));
+
+        return el;
+    }
+
+    private static string ToDirectionString(EfParamDirection d) => d switch
+    {
+        EfParamDirection.InputOutput => "InOut",
+        EfParamDirection.Output => "Out",
+        EfParamDirection.ReturnValue => "ReturnValue",
+        _ => "In"
+    };
 
     private static XElement WriteAssociation(EfAssociation a)
     {

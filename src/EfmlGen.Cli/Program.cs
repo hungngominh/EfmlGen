@@ -35,6 +35,7 @@ public static class Program
                 "scaffold-efml" => ScaffoldEfml.Run(ParseArgs(args, 1)),
                 "db-smoke" => SmokeTest.Run(ParseArgs(args, 1)),
                 "--help" or "-h" or "help" => PrintHelp(),
+                "--version" or "-v" or "version" => PrintVersion(),
                 _ => UnknownCommand(args[0])
             };
         }
@@ -57,6 +58,12 @@ public static class Program
         return 1;
     }
 
+    private static int PrintVersion()
+    {
+        Console.WriteLine($"EfmlGen {EfmlGen.Core.VersionInfo.Current}");
+        return 0;
+    }
+
     private static int PrintHelp()
     {
         Console.WriteLine("""
@@ -66,6 +73,7 @@ public static class Program
               scaffold-efml   Read DB schema, write/merge .efml file (preserves p1:Guid + user renames)
               gen-code        Generate .cs files from an existing .efml
               db-smoke        Quick connection test, print table list
+              --version       Print the EfmlGen tool version and exit
 
             Profile (all commands):
               --profile <name>         Load saved profile (skips repeating common flags).
@@ -78,7 +86,9 @@ public static class Program
               --conn-env <NAME>       Env var name holding connection string (avoid logging password)
               --provider <p>          Postgres | SqlServer (default: Postgres)
               --schemas <s1,s2>       DB schemas to scan (default: dbo)
-              --tables <t1,t2>        Filter to specific table names (optional; default: all)
+              --tables <t1,t2>        Filter to specific table/view names (optional; default: all)
+              --skip-views            Do not scaffold database views (default: views included as keyless entities)
+              --skip-stored-procedures Do not scaffold stored procedures (default: procedures included as DbContext methods)
               --name <s>              Model name, e.g. CategoryEntities (required)
               --namespace <s>         C# namespace (required)
               --context-namespace <s> Context namespace (default: same as --namespace)
@@ -223,6 +233,14 @@ internal static class GenCode
             var navs = navsByClass.TryGetValue(c.Name, out var n) ? n : new();
             var content = EntityEmitter.Emit(model, c, navs, ctx);
             var path = Path.Combine(outDir, $"{fileBase}.{c.Name}.cs");
+            FileIO.Write(path, content);
+            written.Add(path);
+        }
+
+        foreach (var ct in model.ComplexTypes)
+        {
+            var content = ComplexTypeEmitter.Emit(model, ct, ctx);
+            var path = Path.Combine(outDir, $"{fileBase}.{ct.Name}.cs");
             FileIO.Write(path, content);
             written.Add(path);
         }

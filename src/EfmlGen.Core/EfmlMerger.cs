@@ -28,10 +28,14 @@ public static class EfmlMerger
         public List<string> RenamedProperties { get; } = new();
         public List<string> AddedAssociations { get; } = new();
         public List<string> RemovedAssociations { get; } = new();
+        public List<string> AddedStoredProcedures { get; } = new();
+        public List<string> RemovedStoredProcedures { get; } = new();
+        public List<string> RenamedStoredProcedures { get; } = new();    // "dbProc → userName"
         public bool HasChanges =>
             AddedClasses.Count + RemovedClasses.Count + RenamedClasses.Count +
             AddedProperties.Count + RemovedProperties.Count + RenamedProperties.Count +
-            AddedAssociations.Count + RemovedAssociations.Count > 0;
+            AddedAssociations.Count + RemovedAssociations.Count +
+            AddedStoredProcedures.Count + RemovedStoredProcedures.Count + RenamedStoredProcedures.Count > 0;
     }
 
     public static (EfmlModel merged, MergeReport report) Merge(EfmlModel fromDb, EfmlModel existing)
@@ -170,7 +174,67 @@ public static class EfmlMerger
                 report.RemovedAssociations.Add(oldAssoc.Name);
         }
 
+        MergeComplexTypes(fromDb, existing);
+        MergeStoredProcedures(fromDb, existing, report);
+
         return (fromDb, report);
+    }
+
+    private static void MergeComplexTypes(EfmlModel fromDb, EfmlModel existing)
+    {
+        var oldByName = new Dictionary<string, EfComplexType>(StringComparer.OrdinalIgnoreCase);
+        foreach (var ct in existing.ComplexTypes)
+            if (!oldByName.ContainsKey(ct.Name)) oldByName[ct.Name] = ct;
+
+        foreach (var newCt in fromDb.ComplexTypes)
+        {
+            if (!oldByName.TryGetValue(newCt.Name, out var oldCt)) continue;
+
+            newCt.Guid = oldCt.Guid;
+
+            var oldPropByCol = new Dictionary<string, EfProperty>(StringComparer.OrdinalIgnoreCase);
+            foreach (var p in oldCt.Properties)
+                if (!oldPropByCol.ContainsKey(Unquote(p.Column.Name))) oldPropByCol[Unquote(p.Column.Name)] = p;
+
+            foreach (var newProp in newCt.Properties)
+            {
+                if (!oldPropByCol.TryGetValue(Unquote(newProp.Column.Name), out var oldProp)) continue;
+                newProp.Guid = oldProp.Guid;
+                if (!string.Equals(oldProp.Name, newProp.Name, StringComparison.Ordinal))
+                    newProp.Name = oldProp.Name;
+            }
+        }
+    }
+
+    private static void MergeStoredProcedures(EfmlModel fromDb, EfmlModel existing, MergeReport report)
+    {
+        var oldByProc = new Dictionary<string, EfStoredProcedure>(StringComparer.OrdinalIgnoreCase);
+        foreach (var sp in existing.StoredProcedures)
+            if (!oldByProc.ContainsKey(sp.Procedure)) oldByProc[sp.Procedure] = sp;
+
+        var newProcKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var newSp in fromDb.StoredProcedures)
+        {
+            newProcKeys.Add(newSp.Procedure);
+
+            if (!oldByProc.TryGetValue(newSp.Procedure, out var oldSp))
+            {
+                report.AddedStoredProcedures.Add(newSp.Procedure);
+                continue;
+            }
+
+            newSp.Guid = oldSp.Guid;
+            if (!string.Equals(oldSp.Name, newSp.Name, StringComparison.Ordinal))
+            {
+                report.RenamedStoredProcedures.Add($"{newSp.Procedure} → {oldSp.Name}");
+                newSp.Name = oldSp.Name;
+            }
+        }
+
+        foreach (var oldSp in existing.StoredProcedures)
+            if (!newProcKeys.Contains(oldSp.Procedure))
+                report.RemovedStoredProcedures.Add(oldSp.Procedure);
     }
 
     private static string ClassKey(EfClass c) =>

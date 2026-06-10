@@ -5,6 +5,7 @@ using System.Linq;
 using EfmlGen.Core;
 using EfmlGen.Db;
 using EfmlGen.Xml;
+using Microsoft.EntityFrameworkCore.Scaffolding.Metadata;
 
 namespace EfmlGen.Cli;
 
@@ -42,7 +43,17 @@ internal static class ScaffoldEfml
 
         Console.WriteLine($"Reading schema from DB (schemas: {string.Join(",", schemas)})...");
         var dbModel = DatabaseSchemaReader.Read(connStr, provider, new SchemaReadOptions(Schemas: schemas));
-        Console.WriteLine($"  Got {dbModel.Tables.Count} tables.");
+        var viewCount = dbModel.Tables.Count(t => t is DatabaseView);
+        Console.WriteLine($"  Got {dbModel.Tables.Count - viewCount} tables, {viewCount} views.");
+
+        // EF Core returns views in dbModel.Tables (as DatabaseView). Drop them when --skip-views.
+        if (opts.ContainsKey("--skip-views") && viewCount > 0)
+        {
+            var noViews = dbModel.Tables.Where(t => t is not DatabaseView).ToList();
+            dbModel.Tables.Clear();
+            foreach (var t in noViews) dbModel.Tables.Add(t);
+            Console.WriteLine($"  [skip-views] Excluded {viewCount} views.");
+        }
 
         // Client-side filter since Npgsql doesn't honor table filter
         if (tablesFilter != null)
@@ -50,7 +61,7 @@ internal static class ScaffoldEfml
             var keep = dbModel.Tables.Where(t => tablesFilter.Contains(t.Name)).ToList();
             dbModel.Tables.Clear();
             foreach (var t in keep) dbModel.Tables.Add(t);
-            Console.WriteLine($"  Filtered to {dbModel.Tables.Count} tables: {string.Join(", ", dbModel.Tables.Select(t => t.Name))}");
+            Console.WriteLine($"  Filtered to {dbModel.Tables.Count} objects: {string.Join(", ", dbModel.Tables.Select(t => t.Name))}");
         }
 
         var forceDateTime = opts.ContainsKey("--force-datetime");
@@ -65,6 +76,17 @@ internal static class ScaffoldEfml
         });
 
         Console.WriteLine($"Mapped {model.Classes.Count} classes, {model.Associations.Count} associations.");
+
+        if (!opts.ContainsKey("--skip-stored-procedures"))
+        {
+            Console.WriteLine("Reading stored procedures...");
+            var sp = StoredProcedureReader.Read(connStr, provider, schemas, forceDateTime);
+            model.ComplexTypes.AddRange(sp.ComplexTypes);
+            model.StoredProcedures.AddRange(sp.Procedures);
+            Console.WriteLine($"  Got {sp.Procedures.Count} stored procedures, {sp.ComplexTypes.Count} result types.");
+            foreach (var w in sp.Warnings)
+                Console.WriteLine($"  [warn] {w}");
+        }
 
         // Merge with existing efml if present (preserve p1:Guid + user renames)
         var overwriteFlag = opts.ContainsKey("--overwrite");
@@ -133,6 +155,9 @@ internal static class ScaffoldEfml
         Section("Renamed properties (preserved user names)", r.RenamedProperties);
         Section("Added associations", r.AddedAssociations);
         Section("Removed associations", r.RemovedAssociations);
+        Section("Added stored procedures", r.AddedStoredProcedures);
+        Section("Removed stored procedures", r.RemovedStoredProcedures);
+        Section("Renamed stored procedures (preserved user names)", r.RenamedStoredProcedures);
     }
 
     private static string Required(Dictionary<string, string> opts, string key) =>

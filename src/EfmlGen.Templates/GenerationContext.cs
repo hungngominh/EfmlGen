@@ -9,6 +9,12 @@ public sealed class GenerationContext
     public string? ConnectionString { get; init; }
 
     /// <summary>
+    /// Tool version stamped into the generated file header (e.g. "0.4.4"). Defaults to the
+    /// running host's version so any generated file self-identifies which build produced it.
+    /// </summary>
+    public string ToolVersion { get; init; } = EfmlGen.Core.VersionInfo.Current;
+
+    /// <summary>
     /// When true, EntityEmitter generates static GetByXxx convenience methods for each
     /// non-PK index of the entity. Default false to match Devart Entity Developer's
     /// default template.

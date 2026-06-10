@@ -21,7 +21,8 @@ public class ContextEmitterTests
         {
             Timestamp = FixedTimestamp,
             Provider = "Npgsql",
-            ConnectionString = SampleConnString
+            ConnectionString = SampleConnString,
+            ToolVersion = "0.5.0"
         };
         var generated = ContextEmitter.Emit(model, ctx);
         var expected = File.ReadAllText(Path.Combine(SampleDir, "CategoryEntities.CategoryEntities.cs"));

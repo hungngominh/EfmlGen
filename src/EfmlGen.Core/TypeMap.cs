@@ -64,4 +64,27 @@ public static class TypeMap
                 $"Unknown efml type: '{s}'. Valid types: {string.Join(", ", _fromString.Keys)}.");
 
     public static string ToEfml(EfType type) => type.ToString();
+
+    /// <summary>
+    /// Map EfType → the <c>System.Data.DbType</c> enum member name, for emitting
+    /// <c>param.DbType = DbType.X</c> in stored-procedure wrapper methods.
+    /// </summary>
+    public static string ToDbType(EfType type) => type switch
+    {
+        EfType.Int16 => "Int16",
+        EfType.Int32 => "Int32",
+        EfType.Int64 => "Int64",
+        EfType.String => "String",
+        EfType.Boolean => "Boolean",
+        EfType.DateTime => "DateTime",
+        EfType.DateTimeOffset => "DateTimeOffset",
+        EfType.TimeSpan => "Time",
+        EfType.Decimal => "Decimal",
+        EfType.Double => "Double",
+        EfType.Single => "Single",
+        EfType.Byte => "Byte",
+        EfType.Guid => "Guid",
+        EfType.Blob => "Binary",
+        _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+    };
 }
