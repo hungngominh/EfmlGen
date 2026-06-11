@@ -44,9 +44,12 @@ public static class Updater
     }
 
     /// <summary>
-    /// Launches the downloaded installer. The caller must then shut the app down so the
-    /// installer can overwrite the running executable.
+    /// Launches the downloaded installer silently (reuses existing install dir + settings).
+    /// The caller must then shut the app down so the installer can overwrite the running executable.
     /// </summary>
     public static void RunInstaller(string installerPath) =>
-        Process.Start(new ProcessStartInfo(installerPath) { UseShellExecute = true });
+        Process.Start(new ProcessStartInfo(installerPath, "/SILENT /SUPPRESSMSGBOXES /NORESTART")
+        {
+            UseShellExecute = true
+        });
 }

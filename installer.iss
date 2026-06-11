@@ -9,7 +9,7 @@
 ;   Output: publish-release/EfmlGen-Setup-v{version}.exe
 
 #define MyAppName "EfmlGen"
-#define MyAppVersion "0.8.1"
+#define MyAppVersion "0.8.2"
 #define MyAppPublisher "EfmlGen"
 #define MyAppURL "https://github.com/hungngominh/EfmlGen"
 #define MyAppExeName "EfmlGen.Designer.exe"

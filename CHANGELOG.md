@@ -2,6 +2,15 @@
 
 Toàn bộ thay đổi đáng chú ý của EfmlGen được liệt kê tại đây. Format theo [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning theo [SemVer](https://semver.org/).
 
+## [0.8.2] — 2026-06-11
+
+### Fixed — Auto-update chạy installer ở chế độ wizard (nhảy UI)
+- Trước: bấm "Update to vX.Y.Z" → installer Inno Setup mở đầy đủ wizard, yêu cầu chọn lại thư mục cài đặt như lần đầu.
+- Giờ truyền `/SILENT /SUPPRESSMSGBOXES /NORESTART` vào Inno Setup → installer chạy ngầm, giữ nguyên thư mục và tùy chọn của lần cài trước, không hiện wizard.
+
+### Build
+- Bump CLI + WPF + installer + VSIX manifest sang `0.8.2`.
+
 ## [0.8.1] — 2026-06-11
 
 ### Changed — WPF tab "Scaffold + Generate": cải thiện layout UX
