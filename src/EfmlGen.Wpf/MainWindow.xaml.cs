@@ -824,6 +824,17 @@ public partial class MainWindow : Window
 
     private void ClearLog_Click(object sender, RoutedEventArgs e) => LogBox.Clear();
 
+    private bool _logCollapsed;
+    private void LogToggle_Click(object sender, RoutedEventArgs e)
+    {
+        _logCollapsed = !_logCollapsed;
+        LogToggleBtn.Content = _logCollapsed ? "▶" : "▼";
+        LogBox.Visibility = _logCollapsed ? Visibility.Collapsed : Visibility.Visible;
+        ContentGrid.RowDefinitions[1].Height = _logCollapsed
+            ? GridLength.Auto
+            : new GridLength(240);
+    }
+
     private void PrintMergeReport(EfmlMerger.MergeReport? r)
     {
         if (r == null || !r.HasChanges) return;

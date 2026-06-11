@@ -2,6 +2,15 @@
 
 Toàn bộ thay đổi đáng chú ý của EfmlGen được liệt kê tại đây. Format theo [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning theo [SemVer](https://semver.org/).
 
+## [0.8.3] — 2026-06-11
+
+### Changed — WPF: Log Output có thể thu gọn; Tables tự scroll trong card
+- Log Output panel: thêm nút **▼/▶** ở header — click để thu gọn (chỉ còn thanh header), click lại để mở ra 240px. Nút "Clear Console" vẫn hiển thị cạnh bên.
+- Tab Scaffold: bỏ ScrollViewer bao toàn màn hình, thay bằng layout Grid 2 row — title cố định trên, content chiếm toàn bộ chiều cao còn lại. ListBox tables tự scroll bên trong card thay vì dựa vào scroll toàn trang.
+
+### Build
+- Bump CLI + WPF + installer + VSIX manifest sang `0.8.3`.
+
 ## [0.8.2] — 2026-06-11
 
 ### Fixed — Auto-update chạy installer ở chế độ wizard (nhảy UI)

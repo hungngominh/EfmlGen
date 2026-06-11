@@ -116,7 +116,7 @@
             </Border>
 
             <!-- =========== CONTENT + LOG =========== -->
-            <Grid Grid.Column="1">
+            <Grid Grid.Column="1" x:Name="ContentGrid">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>      <!-- content -->
                     <RowDefinition Height="240"/>    <!-- log -->
@@ -227,10 +227,13 @@
 
                     <!-- ===== TAB 2: Scaffold + Generate ===== -->
                     <TabItem Header="Scaffold">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="32,28">
-                            <StackPanel>
-                                <!-- Title row + primary action button -->
-                                <Grid Margin="0,0,0,20">
+                        <Grid Margin="32,28">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <!-- Title row + primary action button -->
+                            <Grid Grid.Row="0" Margin="0,0,0,20">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
@@ -245,7 +248,7 @@
                                             Height="44" FontSize="14" VerticalAlignment="Bottom"/>
                                 </Grid>
 
-                                <Grid>
+                            <Grid Grid.Row="1">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="420"/>
                                         <ColumnDefinition Width="20"/>
@@ -253,7 +256,8 @@
                                     </Grid.ColumnDefinitions>
 
                                     <!-- Left: two grouped cards -->
-                                    <StackPanel Grid.Column="0">
+                                    <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+                                    <StackPanel>
 
                                         <!-- Card 1: Scaffold settings -->
                                         <Border Style="{StaticResource Card}" Margin="0,0,0,16">
@@ -340,8 +344,9 @@
                                         </Border>
 
                                     </StackPanel>
+                                    </ScrollViewer>
 
-                                    <!-- Right: table picker with its own controls -->
+                                    <!-- Right: table picker fills remaining height -->
                                     <Border Grid.Column="2" Style="{StaticResource Card}">
                                         <DockPanel LastChildFill="True">
                                             <StackPanel DockPanel.Dock="Top">
@@ -373,7 +378,7 @@
                                                     </StackPanel>
                                                 </Grid>
                                             </StackPanel>
-                                            <ListBox x:Name="TablesList" SelectionMode="Multiple" MinHeight="400">
+                                            <ListBox x:Name="TablesList" SelectionMode="Multiple">
                                                 <ListBox.ItemTemplate>
                                                     <DataTemplate>
                                                         <CheckBox IsChecked="{Binding IsSelected}"
@@ -387,9 +392,8 @@
                                             </ListBox>
                                         </DockPanel>
                                     </Border>
-                                </Grid>
-                            </StackPanel>
-                        </ScrollViewer>
+                            </Grid>
+                        </Grid>
                     </TabItem>
 
                     <!-- ===== TAB 3: Diagram ===== -->
@@ -412,10 +416,31 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0" Text="▶_  Log Output" FontWeight="SemiBold"
                                            Foreground="{StaticResource LogFg}" FontFamily="Consolas"/>
-                                <Button Grid.Column="1" Content="Clear Console"
+                                <Button Grid.Column="1" x:Name="LogToggleBtn" Content="▼"
+                                        Click="LogToggle_Click" ToolTip="Collapse/expand log panel"
+                                        Background="Transparent" BorderBrush="Transparent"
+                                        Foreground="#94A3B8" FontWeight="Normal" MinHeight="24"
+                                        Padding="8,4">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource BtnBase}">
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Setter Property="BorderBrush" Value="Transparent"/>
+                                            <Setter Property="Foreground" Value="#94A3B8"/>
+                                            <Setter Property="FontWeight" Value="Normal"/>
+                                            <Setter Property="MinHeight" Value="24"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Foreground" Value="#E2E8F0"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Grid.Column="2" Content="Clear Console"
                                         Click="ClearLog_Click"
                                         Background="Transparent" BorderBrush="Transparent"
                                         Foreground="#94A3B8" FontWeight="Normal" MinHeight="24"
