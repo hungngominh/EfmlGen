@@ -2,6 +2,17 @@
 
 Toàn bộ thay đổi đáng chú ý của EfmlGen được liệt kê tại đây. Format theo [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning theo [SemVer](https://semver.org/).
 
+## [0.8.1] — 2026-06-11
+
+### Changed — WPF tab "Scaffold + Generate": cải thiện layout UX
+- Button "Scaffold + Generate" chuyển lên header row cạnh title — luôn thấy ngay khi vào tab, không cần scroll xuống.
+- Tách card settings trái thành 2 card có section header: **Scaffold** (Schemas / Model name / File base name / Namespace / Output .efml / Overwrite / Force DateTime) và **Generate** (Output directory / Context class / DataContext template / Connection string / Skip* / Force).
+- Chuyển "Selected: N", "Select all", "Clear" từ card trái sang panel phải — đặt ngay trên danh sách table, đúng vị trí logic.
+- Rút ngắn label dài → tooltip: "File base name (override; empty = use .efml filename)" → "File base name" + tooltip; "Overwrite (discard existing GUIDs)" → "Overwrite" + tooltip; tương tự cho DataContext template, Connection string, Force.
+
+### Build
+- Bump CLI + WPF + installer + VSIX manifest sang `0.8.1`.
+
 ## [0.8.0] — 2026-06-10
 
 ### Added — Scaffold + gen STORED PROCEDURES (Postgres + SQL Server)

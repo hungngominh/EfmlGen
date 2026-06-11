@@ -229,9 +229,21 @@
                     <TabItem Header="Scaffold">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="32,28">
                             <StackPanel>
-                                <TextBlock Text="Scaffold + Generate" Style="{StaticResource H1}"/>
-                                <TextBlock Text="Pick tables, build the .efml model, and generate the C# code in one step."
-                                           Style="{StaticResource Subtitle}" Margin="0,4,0,20"/>
+                                <!-- Title row + primary action button -->
+                                <Grid Margin="0,0,0,20">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Scaffold + Generate" Style="{StaticResource H1}"/>
+                                        <TextBlock Text="Pick tables, build the .efml model, and generate the C# code in one step."
+                                                   Style="{StaticResource Subtitle}" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Content="Scaffold + Generate" Style="{StaticResource BtnPrimary}"
+                                            Click="ScaffoldAndGen_Click"
+                                            Height="44" FontSize="14" VerticalAlignment="Bottom"/>
+                                </Grid>
 
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -240,104 +252,101 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <!-- Left: scaffold settings -->
-                                    <Border Grid.Column="0" Style="{StaticResource Card}">
-                                        <StackPanel>
-                                            <TextBlock Text="Schemas (comma-separated)" Style="{StaticResource FieldLabel}"/>
-                                            <TextBox x:Name="SchemasBox" Text="dbo"/>
+                                    <!-- Left: two grouped cards -->
+                                    <StackPanel Grid.Column="0">
 
-                                            <TextBlock Text="Model name" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
-                                            <TextBox x:Name="ModelNameBox"/>
+                                        <!-- Card 1: Scaffold settings -->
+                                        <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                                            <StackPanel>
+                                                <TextBlock Text="Scaffold" Style="{StaticResource H2}" Margin="0,0,0,12"/>
 
-                                            <TextBlock Text="File base name (override; empty = use .efml filename)"
-                                                       Style="{StaticResource FieldLabel}" Margin="0,16,0,6"
-                                                       ToolTip="Prefix for generated .cs files. Leave empty unless the legacy efml filename differs from the model name."/>
-                                            <TextBox x:Name="FileBaseNameBox"/>
+                                                <TextBlock Text="Schemas (comma-separated)" Style="{StaticResource FieldLabel}"/>
+                                                <TextBox x:Name="SchemasBox" Text="dbo"/>
 
-                                            <TextBlock Text="Namespace" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
-                                            <TextBox x:Name="NamespaceBox"/>
+                                                <TextBlock Text="Model name" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
+                                                <TextBox x:Name="ModelNameBox"/>
 
-                                            <TextBlock Text="Output .efml path" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBox Grid.Column="0" x:Name="EfmlPathBox"/>
-                                                <Button Grid.Column="1" Content="…" Click="BrowseEfml_Click"
-                                                        Style="{StaticResource BtnGhost}" MinWidth="44" Margin="8,0,0,0"/>
-                                            </Grid>
+                                                <TextBlock Text="File base name" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"
+                                                           ToolTip="Prefix for generated .cs files. Leave empty unless the legacy efml filename differs from the model name."/>
+                                                <TextBox x:Name="FileBaseNameBox"/>
 
-                                            <CheckBox x:Name="OverwriteChk"
-                                                      Content="Overwrite (discard existing GUIDs)"
-                                                      Margin="0,16,0,0"/>
-                                            <CheckBox x:Name="ForceDateTimeChk"
-                                                      Content="Force DateTime (timestamptz → DateTime, timetz → TimeSpan)"
-                                                      Margin="0,8,0,0"/>
+                                                <TextBlock Text="Namespace" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
+                                                <TextBox x:Name="NamespaceBox"/>
 
-                                            <Separator/>
+                                                <TextBlock Text="Output .efml path" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBox Grid.Column="0" x:Name="EfmlPathBox"/>
+                                                    <Button Grid.Column="1" Content="…" Click="BrowseEfml_Click"
+                                                            Style="{StaticResource BtnGhost}" MinWidth="44" Margin="8,0,0,0"/>
+                                                </Grid>
 
-                                            <TextBlock Text="Output directory" Style="{StaticResource FieldLabel}"/>
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBox Grid.Column="0" x:Name="OutputDirBox"
-                                                         ToolTip="Leave empty to use the .efml folder."/>
-                                                <Button Grid.Column="1" Content="…" Click="BrowseOutputDir_Click"
-                                                        Style="{StaticResource BtnGhost}" MinWidth="44" Margin="8,0,0,0"/>
-                                            </Grid>
-
-                                            <TextBlock Text="Context class" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
-                                            <TextBox x:Name="ContextClassBox"/>
-
-                                            <TextBlock Text="DataContext template (optional)" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBox Grid.Column="0" x:Name="DataContextTemplateBox"
-                                                         ToolTip="Leave empty to use built-in template."/>
-                                                <Button Grid.Column="1" Content="…" Click="BrowseDataContextTemplate_Click"
-                                                        Style="{StaticResource BtnGhost}" MinWidth="44" Margin="8,0,0,0"/>
-                                            </Grid>
-
-                                            <TextBlock Text="Connection string (baked into DbContext)" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
-                                            <TextBox x:Name="GenConnStringBox"
-                                                     ToolTip="Baked into DbContext OnConfiguring. Auto-filled from Connection."/>
-
-                                            <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-                                                <CheckBox x:Name="SkipDataContextChk" Content="Skip DataContext.cs" IsChecked="True" Margin="0,0,20,0"/>
-                                                <CheckBox x:Name="SkipInfoChk" Content="Skip .info file" IsChecked="True" Margin="0,0,20,0"/>
-                                                <CheckBox x:Name="ForceChk" Content="Force (ignore collision errors)"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                                    <CheckBox x:Name="OverwriteChk" Content="Overwrite" Margin="0,0,20,0"
+                                                              ToolTip="Discard existing GUIDs"/>
+                                                    <CheckBox x:Name="ForceDateTimeChk" Content="Force DateTime"
+                                                              ToolTip="timestamptz → DateTime, timetz → TimeSpan"/>
+                                                </StackPanel>
                                             </StackPanel>
+                                        </Border>
 
-                                            <Separator/>
+                                        <!-- Card 2: Generate settings -->
+                                        <Border Style="{StaticResource Card}">
+                                            <StackPanel>
+                                                <TextBlock Text="Generate" Style="{StaticResource H2}" Margin="0,0,0,12"/>
 
-                                            <TextBlock x:Name="SelectedCountText" Text="Selected: 0"
-                                                       FontWeight="SemiBold" Margin="0,4,0,8"/>
-                                            <StackPanel Orientation="Horizontal">
-                                                <Button Content="Select all" Style="{StaticResource BtnGhost}"
-                                                        Click="SelectAllTables_Click" Margin="0,0,8,0"/>
-                                                <Button Content="Clear" Style="{StaticResource BtnGhost}"
-                                                        Click="ClearTables_Click"/>
+                                                <TextBlock Text="Output directory" Style="{StaticResource FieldLabel}"/>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBox Grid.Column="0" x:Name="OutputDirBox"
+                                                             ToolTip="Leave empty to use the .efml folder."/>
+                                                    <Button Grid.Column="1" Content="…" Click="BrowseOutputDir_Click"
+                                                            Style="{StaticResource BtnGhost}" MinWidth="44" Margin="8,0,0,0"/>
+                                                </Grid>
+
+                                                <TextBlock Text="Context class" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
+                                                <TextBox x:Name="ContextClassBox"/>
+
+                                                <TextBlock Text="DataContext template" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"
+                                                           ToolTip="Leave empty to use built-in template."/>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBox Grid.Column="0" x:Name="DataContextTemplateBox"
+                                                             ToolTip="Leave empty to use built-in template."/>
+                                                    <Button Grid.Column="1" Content="…" Click="BrowseDataContextTemplate_Click"
+                                                            Style="{StaticResource BtnGhost}" MinWidth="44" Margin="8,0,0,0"/>
+                                                </Grid>
+
+                                                <TextBlock Text="Connection string" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"
+                                                           ToolTip="Baked into DbContext OnConfiguring. Auto-filled from Connection."/>
+                                                <TextBox x:Name="GenConnStringBox"
+                                                         ToolTip="Baked into DbContext OnConfiguring. Auto-filled from Connection."/>
+
+                                                <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                                    <CheckBox x:Name="SkipDataContextChk" Content="Skip DataContext" IsChecked="True" Margin="0,0,16,0"/>
+                                                    <CheckBox x:Name="SkipInfoChk" Content="Skip .info" IsChecked="True" Margin="0,0,16,0"/>
+                                                    <CheckBox x:Name="ForceChk" Content="Force" ToolTip="Ignore collision errors"/>
+                                                </StackPanel>
                                             </StackPanel>
+                                        </Border>
 
-                                            <Button Content="Scaffold + Generate" Style="{StaticResource BtnPrimary}"
-                                                    Click="ScaffoldAndGen_Click" Margin="0,20,0,0"
-                                                    Height="44" FontSize="14"/>
-                                        </StackPanel>
-                                    </Border>
+                                    </StackPanel>
 
-                                    <!-- Right: table picker -->
+                                    <!-- Right: table picker with its own controls -->
                                     <Border Grid.Column="2" Style="{StaticResource Card}">
                                         <DockPanel LastChildFill="True">
                                             <StackPanel DockPanel.Dock="Top">
-                                                <TextBlock Text="Tables in selected schema(s)"
-                                                           Style="{StaticResource H2}"/>
-                                                <Grid Margin="0,10,0,12">
+                                                <TextBlock Text="Tables" Style="{StaticResource H2}"/>
+                                                <Grid Margin="0,10,0,8">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*"/>
                                                         <ColumnDefinition Width="Auto"/>
@@ -348,6 +357,20 @@
                                                     <TextBlock Grid.Column="1" x:Name="TableTotalText"
                                                                Margin="12,0,0,0" VerticalAlignment="Center"
                                                                Foreground="{StaticResource TextMuted}"/>
+                                                </Grid>
+                                                <Grid Margin="0,0,0,12">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" x:Name="SelectedCountText" Text="Selected: 0"
+                                                               FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                        <Button Content="Select all" Style="{StaticResource BtnGhost}"
+                                                                Click="SelectAllTables_Click" Margin="0,0,8,0"/>
+                                                        <Button Content="Clear" Style="{StaticResource BtnGhost}"
+                                                                Click="ClearTables_Click"/>
+                                                    </StackPanel>
                                                 </Grid>
                                             </StackPanel>
                                             <ListBox x:Name="TablesList" SelectionMode="Multiple" MinHeight="400">
