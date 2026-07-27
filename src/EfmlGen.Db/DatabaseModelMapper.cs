@@ -227,6 +227,16 @@ public static class DatabaseModelMapper
         if (isRowVersion && valueGenerated == null)
             valueGenerated = "OnAddOrUpdate";
 
+        // A sequence-backed default (nextval(...) / NEXT VALUE FOR ...) means the DB generates
+        // the value on insert, even when the scaffolder didn't flag ValueGenerated=OnAdd itself.
+        // This happens for Postgres columns whose sequence was created manually and attached via
+        // DEFAULT nextval(...) without `OWNED BY` — the scaffolder only recognizes true
+        // serial/GENERATED AS IDENTITY columns as OnAdd. Without this, we'd emit
+        // ValueGeneratedNever() alongside a nextval() default, which tells EF to always supply
+        // the value itself — so it inserts 0 instead of letting the sequence assign one.
+        if (valueGenerated == null && !string.IsNullOrEmpty(col.DefaultValueSql) && IsSequenceDefault(col.DefaultValueSql))
+            valueGenerated = "OnAdd";
+
         // Drop DefaultValueSql for server-side identity/serial columns. EF scaffolder reports
         // `nextval('...'::regclass)` (Postgres) for `serial`/`bigserial` even though
         // ValueGenerated=OnAdd already encodes the behavior — emitting both produces redundant

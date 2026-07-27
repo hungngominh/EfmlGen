@@ -50,7 +50,7 @@ Compress-Archive -Path 'publish-release\EfmlGen-win-x64\*' -DestinationPath 'pub
 # Output: publish-release/EfmlGen-Setup-vNEW.exe
 
 # 4. VSIX — BẮT BUỘC dùng PowerShell (Bash/MSYS2 làm hỏng /p: switch)
-& "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe" `
+& "C:\Program Files\Microsoft Visual Studio\18\Insiders\MSBuild\Current\Bin\MSBuild.exe" `
   "src-vsix\EfmlGen.Vsix\EfmlGen.Vsix.csproj" `
   /t:Rebuild /p:Configuration=Release /p:DeployExtension=false /v:m /nologo
 # Output: src-vsix\EfmlGen.Vsix\bin\Release\EfmlGen.Vsix.vsix
@@ -94,6 +94,6 @@ gh release upload vNEW \
 ## Toolchain (máy NGOMI)
 
 - `dotnet` — có trên PATH
-- MSBuild — `C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe`
+- MSBuild — `C:\Program Files\Microsoft Visual Studio\18\Insiders\MSBuild\Current\Bin\MSBuild.exe` (VS đã upgrade từ 2022 Community lên 18 Insiders — path đổi, nếu lại đổi thì dùng `vswhere.exe -all -products * -format json` để tìm `installationPath`)
 - Inno Setup — `C:\Users\NGOMI\AppData\Local\Programs\Inno Setup 6\ISCC.exe` (user-local, `where iscc` không tìm thấy)
 - `gh` — có trên PATH

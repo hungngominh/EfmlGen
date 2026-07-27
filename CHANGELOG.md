@@ -2,6 +2,16 @@
 
 Toàn bộ thay đổi đáng chú ý của EfmlGen được liệt kê tại đây. Format theo [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning theo [SemVer](https://semver.org/).
 
+## [0.8.4] — 2026-07-27
+
+### Fixed — Postgres: cột Id với sequence default thủ công không tự tăng
+- Trước: nếu cột Id có `DEFAULT nextval(sequence)` nhưng sequence được tạo tay (không phải `SERIAL`/`GENERATED AS IDENTITY`, không có `OWNED BY` gắn với cột), Npgsql scaffolder trả về `ValueGenerated=None` dù `DefaultValueSql` vẫn là `nextval(...)`. `DatabaseModelMapper` sinh ra `.ValueGeneratedNever().HasDefaultValueSql(@"nextval(...)")` — hai chỉ định mâu thuẫn nhau khiến EF Core gửi giá trị `0` (default C# `int`) vào INSERT thay vì để Postgres tự tăng sequence.
+- Giờ `DatabaseModelMapper.MapProperty` promote `ValueGenerated="OnAdd"` ngay khi phát hiện `DefaultValueSql` khớp pattern sequence (`nextval(`/`next value for`), kể cả khi scaffolder chưa tự gắn cờ OnAdd. Default dư thừa vẫn được lược bỏ như cũ.
+- Thêm test hồi quy `SequenceDefaultMapperTests` tái hiện đúng case (bảng `B2B_Server_Request`, cột `Id`).
+
+### Build
+- Bump CLI + WPF + installer + VSIX manifest sang `0.8.4`.
+
 ## [0.8.3] — 2026-06-11
 
 ### Changed — WPF: Log Output có thể thu gọn; Tables tự scroll trong card
