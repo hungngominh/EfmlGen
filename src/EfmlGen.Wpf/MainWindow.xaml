@@ -128,11 +128,11 @@
                             SelectionChanged="MainTabs_SelectionChanged"
                             Background="Transparent" BorderThickness="0"
                             Padding="32,28">
-                    <TabControl.Resources>
+                    <TabControl.ItemContainerStyle>
                         <Style TargetType="TabItem">
                             <Setter Property="Visibility" Value="Collapsed"/>
                         </Style>
-                    </TabControl.Resources>
+                    </TabControl.ItemContainerStyle>
                     <TabControl.Template>
                         <ControlTemplate TargetType="TabControl">
                             <Grid>

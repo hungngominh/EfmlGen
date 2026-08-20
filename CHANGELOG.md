@@ -2,6 +2,15 @@
 
 Toàn bộ thay đổi đáng chú ý của EfmlGen được liệt kê tại đây. Format theo [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning theo [SemVer](https://semver.org/).
 
+## [0.8.6] — 2026-08-20
+
+### Fixed — WPF: tab "Tables" / "Stored procedures" bị ẩn header
+- `MainWindow.xaml`: style ẩn header của TabControl ngoài cùng (điều hướng Connection/Scaffold/Diagram) được khai báo dạng implicit style (`TabControl.Resources` → `Style TargetType="TabItem"`), nên bị lan xuống ẩn luôn header của TabControl con "Tables"/"Stored procedures" trong tab Scaffold — người dùng không có cách nào chuyển giữa 2 tab đó.
+- Chuyển style này sang `TabControl.ItemContainerStyle` để chỉ áp dụng cho chính TabControl ngoài cùng, không lan xuống TabControl lồng bên trong.
+
+### Build
+- Bump CLI + WPF + installer + VSIX manifest sang `0.8.6`.
+
 ## [0.8.5] — 2026-08-20
 
 ### Added — WPF: hỗ trợ Stored Procedures đầy đủ (ngang bằng CLI)
