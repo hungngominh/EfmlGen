@@ -22,6 +22,8 @@ public partial class MainWindow : Window
     private AppSettings _settings = new();
     private readonly ObservableCollection<TableItem> _tables = new();
     private readonly ObservableCollection<TableItem> _filteredTables = new();
+    private readonly ObservableCollection<SpItem> _sps = new();
+    private readonly ObservableCollection<SpItem> _filteredSps = new();
 
     private bool _suppressProfileFilter;
     private readonly string? _initialEfmlPath;
@@ -44,6 +46,7 @@ public partial class MainWindow : Window
             Dispatcher.Invoke(() => LogLine(line))));
 
         TablesList.ItemsSource = _filteredTables;
+        SpsList.ItemsSource = _filteredSps;
 
         ProfileCombo.AddHandler(TextBoxBase.TextChangedEvent,
             new TextChangedEventHandler(ProfileCombo_TextChanged));
@@ -529,6 +532,7 @@ public partial class MainWindow : Window
         var efmlPath = EfmlPathBox.Text.Trim();
 
         var dbProvider = ToDbProvider(profile.Provider);
+        var forceDateTime = ForceDateTimeChk.IsChecked == true;
         await RunAsync("Loading tables...", () =>
         {
             var schemas = profile.Schemas.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray();
@@ -536,6 +540,7 @@ public partial class MainWindow : Window
 
             var preselectFull = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var preselectTableOnly = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var preselectSps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             if (!string.IsNullOrEmpty(efmlPath) && File.Exists(efmlPath))
             {
                 try
@@ -551,7 +556,8 @@ public partial class MainWindow : Window
                         // matching by unqualified table name so these still preselect.
                         preselectTableOnly.Add(tbl);
                     }
-                    Console.WriteLine($"Found existing efml with {existing.Classes.Count} classes — will pre-select matching tables.");
+                    foreach (var sp in existing.StoredProcedures) preselectSps.Add(sp.Procedure);
+                    Console.WriteLine($"Found existing efml with {existing.Classes.Count} classes, {existing.StoredProcedures.Count} stored procedures — will pre-select matches.");
                 }
                 catch (Exception ex)
                 {
@@ -573,6 +579,18 @@ public partial class MainWindow : Window
 
             var preselectedCount = items.Count(i => i.IsSelected);
 
+            var spResult = GenWorker.ReadStoredProcedures(connStr, dbProvider, schemas, forceDateTime);
+            var spItems = spResult.Procedures
+                .OrderBy(p => p.Procedure)
+                .Select(p =>
+                {
+                    var it = new SpItem(p.Schema, p.Name, p.Procedure, p.Parameters.Count, p.ReturnComplexType != null);
+                    if (preselectSps.Contains(p.Procedure)) it.IsSelected = true;
+                    return it;
+                })
+                .ToList();
+            var preselectedSpCount = spItems.Count(i => i.IsSelected);
+
             Dispatcher.Invoke(() =>
             {
                 _tables.Clear();
@@ -580,9 +598,16 @@ public partial class MainWindow : Window
                 ApplyTableSearch();
                 TableTotalText.Text = $"({items.Count} total)";
                 SelectedCountText.Text = $"Selected: {preselectedCount}";
+
+                _sps.Clear();
+                foreach (var it in spItems) _sps.Add(it);
+                ApplySpSearch();
+                SpTotalText.Text = $"({spItems.Count} total)";
+                SpSelectedCountText.Text = $"Selected: {preselectedSpCount}";
+
                 MainTabs.SelectedIndex = 1;
             });
-            Console.WriteLine($"Loaded {items.Count} tables ({preselectedCount} pre-selected). Switch to 'Scaffold' tab to pick.");
+            Console.WriteLine($"Loaded {items.Count} tables ({preselectedCount} pre-selected), {spItems.Count} stored procedures ({preselectedSpCount} pre-selected). Switch to 'Scaffold' tab to pick.");
         });
     }
 
@@ -630,6 +655,45 @@ public partial class MainWindow : Window
         TablesList.ItemsSource = null;
         TablesList.ItemsSource = src;
         TableCheck_Changed(this, new RoutedEventArgs());
+    }
+
+    private void SpSearch_TextChanged(object sender, TextChangedEventArgs e) => ApplySpSearch();
+
+    private void ApplySpSearch()
+    {
+        var q = SpSearchBox.Text?.Trim() ?? "";
+        _filteredSps.Clear();
+        foreach (var s in _sps)
+        {
+            if (q.Length == 0 || s.Procedure.Contains(q, StringComparison.OrdinalIgnoreCase))
+                _filteredSps.Add(s);
+        }
+    }
+
+    private void SpCheck_Changed(object sender, RoutedEventArgs e)
+    {
+        var count = _sps.Count(s => s.IsSelected);
+        SpSelectedCountText.Text = $"Selected: {count}";
+    }
+
+    private void SelectAllSps_Click(object sender, RoutedEventArgs e)
+    {
+        foreach (var s in _filteredSps) s.IsSelected = true;
+        RefreshSpsListBinding();
+    }
+
+    private void ClearSps_Click(object sender, RoutedEventArgs e)
+    {
+        foreach (var s in _sps) s.IsSelected = false;
+        RefreshSpsListBinding();
+    }
+
+    private void RefreshSpsListBinding()
+    {
+        var src = SpsList.ItemsSource;
+        SpsList.ItemsSource = null;
+        SpsList.ItemsSource = src;
+        SpCheck_Changed(this, new RoutedEventArgs());
     }
 
     private void BrowseEfml_Click(object sender, RoutedEventArgs e)
@@ -708,6 +772,9 @@ public partial class MainWindow : Window
             MessageBox.Show("Select at least one table from the list.", "Scaffold + Generate", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
+        // No SPs loaded yet (user never clicked "Load Schema Tables + SPs") vs. explicitly
+        // deselecting all of them are different intents — only pass a filter in the latter case.
+        var selectedSps = _sps.Count == 0 ? null : _sps.Where(s => s.IsSelected).Select(s => s.Procedure).ToArray();
 
         var modelName = ModelNameBox.Text.Trim();
         var ns = NamespaceBox.Text.Trim();
@@ -742,13 +809,14 @@ public partial class MainWindow : Window
         var force = ForceChk.IsChecked == true;
         var fileBaseArg = string.IsNullOrEmpty(fileBaseOverride) ? null : fileBaseOverride;
 
-        await RunAsync($"Scaffold + Generate ({selectedTables.Length} tables)...", () =>
+        var spCountLabel = selectedSps == null ? "" : $", {selectedSps.Length} SPs";
+        await RunAsync($"Scaffold + Generate ({selectedTables.Length} tables{spCountLabel})...", () =>
         {
             var schemas = profile.Schemas.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray();
 
             Console.WriteLine("=== Scaffold ===");
             var scaffold = GenWorker.Scaffold(connStr, dbProvider, schemas, selectedTables, modelName, ns, ns, efmlPath, overwrite, forceDateTime,
-                fileBaseNameOverride: fileBaseArg);
+                fileBaseNameOverride: fileBaseArg, spFilter: selectedSps);
             PrintMergeReport(scaffold.MergeReport);
             PrintWarnings(scaffold.Warnings);
 
@@ -885,5 +953,27 @@ public sealed class TableItem : INotifyPropertyChanged
     }
 
     public TableItem(string schema, string name, int cols, int fks) { Schema = schema; Name = name; Cols = cols; Fks = fks; }
+    public event PropertyChangedEventHandler? PropertyChanged;
+}
+
+public sealed class SpItem : INotifyPropertyChanged
+{
+    public string Schema { get; }
+    public string Name { get; }
+    /// <summary>Fully-qualified "schema.name" — matches EfStoredProcedure.Procedure.</summary>
+    public string Procedure { get; }
+    public int ParamCount { get; }
+    public bool HasResult { get; }
+    public string Display => $"{Procedure}  ({ParamCount} params{(HasResult ? ", returns result" : "")})";
+
+    private bool _isSelected;
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set { if (_isSelected == value) return; _isSelected = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected))); }
+    }
+
+    public SpItem(string schema, string name, string procedure, int paramCount, bool hasResult)
+    { Schema = schema; Name = name; Procedure = procedure; ParamCount = paramCount; HasResult = hasResult; }
     public event PropertyChangedEventHandler? PropertyChanged;
 }

@@ -205,7 +205,7 @@
                                         <Button Content="⚡  Test Connection" Style="{StaticResource BtnPrimary}"
                                                 Click="TestConnection_Click" Margin="0,16,0,0"
                                                 Height="44" FontSize="14"/>
-                                        <Button Content="⟲  Load Schema Tables" Style="{StaticResource BtnSecondary}"
+                                        <Button Content="⟲  Load Schema Tables + SPs" Style="{StaticResource BtnSecondary}"
                                                 Click="LoadTables_Click" Margin="0,10,0,0"
                                                 Height="44" FontSize="14"/>
                                     </StackPanel>
@@ -218,7 +218,7 @@
                                                    Foreground="{StaticResource TextMuted}"/>
                                         <TextBlock Margin="0,8,0,0" HorizontalAlignment="Center"
                                                    Foreground="{StaticResource TextMuted}"
-                                                   Text="No tables loaded. Connect and click 'Load Schema Tables' to preview your database structure."/>
+                                                   Text="No tables loaded. Connect and click 'Load Schema Tables + SPs' to preview your database structure."/>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
@@ -346,51 +346,99 @@
                                     </StackPanel>
                                     </ScrollViewer>
 
-                                    <!-- Right: table picker fills remaining height -->
-                                    <Border Grid.Column="2" Style="{StaticResource Card}">
-                                        <DockPanel LastChildFill="True">
-                                            <StackPanel DockPanel.Dock="Top">
-                                                <TextBlock Text="Tables" Style="{StaticResource H2}"/>
-                                                <Grid Margin="0,10,0,8">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBox Grid.Column="0" x:Name="TableSearchBox"
-                                                             TextChanged="TableSearch_TextChanged"
-                                                             ToolTip="Type to filter (case-insensitive contains)"/>
-                                                    <TextBlock Grid.Column="1" x:Name="TableTotalText"
-                                                               Margin="12,0,0,0" VerticalAlignment="Center"
-                                                               Foreground="{StaticResource TextMuted}"/>
-                                                </Grid>
-                                                <Grid Margin="0,0,0,12">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Grid.Column="0" x:Name="SelectedCountText" Text="Selected: 0"
-                                                               FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                                        <Button Content="Select all" Style="{StaticResource BtnGhost}"
-                                                                Click="SelectAllTables_Click" Margin="0,0,8,0"/>
-                                                        <Button Content="Clear" Style="{StaticResource BtnGhost}"
-                                                                Click="ClearTables_Click"/>
+                                    <!-- Right: table / stored-procedure picker fills remaining height -->
+                                    <Border Grid.Column="2" Style="{StaticResource Card}" Padding="0">
+                                        <TabControl>
+                                            <TabItem Header="Tables">
+                                                <DockPanel LastChildFill="True" Margin="16">
+                                                    <StackPanel DockPanel.Dock="Top">
+                                                        <Grid Margin="0,0,0,8">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBox Grid.Column="0" x:Name="TableSearchBox"
+                                                                     TextChanged="TableSearch_TextChanged"
+                                                                     ToolTip="Type to filter (case-insensitive contains)"/>
+                                                            <TextBlock Grid.Column="1" x:Name="TableTotalText"
+                                                                       Margin="12,0,0,0" VerticalAlignment="Center"
+                                                                       Foreground="{StaticResource TextMuted}"/>
+                                                        </Grid>
+                                                        <Grid Margin="0,0,0,12">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Grid.Column="0" x:Name="SelectedCountText" Text="Selected: 0"
+                                                                       FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                                <Button Content="Select all" Style="{StaticResource BtnGhost}"
+                                                                        Click="SelectAllTables_Click" Margin="0,0,8,0"/>
+                                                                <Button Content="Clear" Style="{StaticResource BtnGhost}"
+                                                                        Click="ClearTables_Click"/>
+                                                            </StackPanel>
+                                                        </Grid>
                                                     </StackPanel>
-                                                </Grid>
-                                            </StackPanel>
-                                            <ListBox x:Name="TablesList" SelectionMode="Multiple">
-                                                <ListBox.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <CheckBox IsChecked="{Binding IsSelected}"
-                                                                  Tag="{Binding Name}"
-                                                                  Checked="TableCheck_Changed"
-                                                                  Unchecked="TableCheck_Changed">
-                                                            <TextBlock Text="{Binding Display}"/>
-                                                        </CheckBox>
-                                                    </DataTemplate>
-                                                </ListBox.ItemTemplate>
-                                            </ListBox>
-                                        </DockPanel>
+                                                    <ListBox x:Name="TablesList" SelectionMode="Multiple">
+                                                        <ListBox.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <CheckBox IsChecked="{Binding IsSelected}"
+                                                                          Tag="{Binding Name}"
+                                                                          Checked="TableCheck_Changed"
+                                                                          Unchecked="TableCheck_Changed">
+                                                                    <TextBlock Text="{Binding Display}"/>
+                                                                </CheckBox>
+                                                            </DataTemplate>
+                                                        </ListBox.ItemTemplate>
+                                                    </ListBox>
+                                                </DockPanel>
+                                            </TabItem>
+
+                                            <TabItem Header="Stored procedures">
+                                                <DockPanel LastChildFill="True" Margin="16">
+                                                    <StackPanel DockPanel.Dock="Top">
+                                                        <Grid Margin="0,0,0,8">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBox Grid.Column="0" x:Name="SpSearchBox"
+                                                                     TextChanged="SpSearch_TextChanged"
+                                                                     ToolTip="Type to filter (case-insensitive contains)"/>
+                                                            <TextBlock Grid.Column="1" x:Name="SpTotalText"
+                                                                       Margin="12,0,0,0" VerticalAlignment="Center"
+                                                                       Foreground="{StaticResource TextMuted}"/>
+                                                        </Grid>
+                                                        <Grid Margin="0,0,0,12">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Grid.Column="0" x:Name="SpSelectedCountText" Text="Selected: 0"
+                                                                       FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                                <Button Content="Select all" Style="{StaticResource BtnGhost}"
+                                                                        Click="SelectAllSps_Click" Margin="0,0,8,0"/>
+                                                                <Button Content="Clear" Style="{StaticResource BtnGhost}"
+                                                                        Click="ClearSps_Click"/>
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </StackPanel>
+                                                    <ListBox x:Name="SpsList" SelectionMode="Multiple">
+                                                        <ListBox.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <CheckBox IsChecked="{Binding IsSelected}"
+                                                                          Tag="{Binding Procedure}"
+                                                                          Checked="SpCheck_Changed"
+                                                                          Unchecked="SpCheck_Changed">
+                                                                    <TextBlock Text="{Binding Display}"/>
+                                                                </CheckBox>
+                                                            </DataTemplate>
+                                                        </ListBox.ItemTemplate>
+                                                    </ListBox>
+                                                </DockPanel>
+                                            </TabItem>
+                                        </TabControl>
                                     </Border>
                             </Grid>
                         </Grid>

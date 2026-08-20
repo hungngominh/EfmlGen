@@ -22,6 +22,9 @@ public static class GenWorker
     public static DatabaseModel ReadSchema(string connectionString, DbProvider provider, string[] schemas) =>
         DatabaseSchemaReader.Read(connectionString, provider, new SchemaReadOptions(Schemas: schemas));
 
+    public static StoredProcedureReader.Result ReadStoredProcedures(string connectionString, DbProvider provider, string[] schemas, bool forceDateTime) =>
+        StoredProcedureReader.Read(connectionString, provider, schemas, forceDateTime);
+
     public sealed record ScaffoldResult(
         EfmlModel Model,
         EfmlMerger.MergeReport? MergeReport,
@@ -38,7 +41,8 @@ public static class GenWorker
         string outEfmlPath,
         bool overwriteFresh,
         bool forceDateTime = false,
-        string? fileBaseNameOverride = null)
+        string? fileBaseNameOverride = null,
+        string[]? spFilter = null)
     {
         Console.WriteLine($"Reading schema from DB (schemas: {string.Join(",", schemas)})...");
         var dbModel = DatabaseSchemaReader.Read(connectionString, provider, new SchemaReadOptions(Schemas: schemas));
@@ -63,6 +67,30 @@ public static class GenWorker
         });
 
         Console.WriteLine($"Mapped {model.Classes.Count} classes, {model.Associations.Count} associations.");
+
+        // spFilter == null means "no filter, read everything"; spFilter == [] (from an explicit
+        // but empty picker selection) means "read none" — skip the DB round-trip entirely.
+        if (spFilter == null || spFilter.Length > 0)
+        {
+            Console.WriteLine("Reading stored procedures...");
+            var sp = StoredProcedureReader.Read(connectionString, provider, schemas, forceDateTime);
+            var procs = sp.Procedures;
+            var complexTypes = sp.ComplexTypes;
+            if (spFilter != null)
+            {
+                var keepSpSet = new HashSet<string>(spFilter, StringComparer.OrdinalIgnoreCase);
+                var keepResultTypes = new HashSet<string>(
+                    procs.Where(p => keepSpSet.Contains(p.Procedure)).Select(p => p.ReturnComplexType).Where(n => !string.IsNullOrEmpty(n))!,
+                    StringComparer.Ordinal);
+                procs = procs.Where(p => keepSpSet.Contains(p.Procedure)).ToList();
+                complexTypes = complexTypes.Where(ct => keepResultTypes.Contains(ct.Name)).ToList();
+            }
+            model.ComplexTypes.AddRange(complexTypes);
+            model.StoredProcedures.AddRange(procs);
+            Console.WriteLine($"  Got {procs.Count} stored procedures, {complexTypes.Count} result types.");
+            foreach (var w in sp.Warnings)
+                Console.WriteLine($"  [warn] {w}");
+        }
 
         EfmlMerger.MergeReport? mergeReport = null;
         if (File.Exists(outEfmlPath) && !overwriteFresh)
@@ -149,14 +177,23 @@ public static class GenWorker
             written.Add(path);
         }
 
+        foreach (var ct in model.ComplexTypes)
+        {
+            var content = ComplexTypeEmitter.Emit(model, ct, ctx);
+            var path = Path.Combine(outDir, $"{fileBase}.{ct.Name}.cs");
+            File.WriteAllText(path, content, Utf8Bom);
+            written.Add(path);
+        }
+
         var contextContent = ContextEmitter.Emit(model, ctx);
         var contextPath = Path.Combine(outDir, $"{fileBase}.{model.Name}.cs");
         File.WriteAllText(contextPath, contextContent, Utf8Bom);
         written.Add(contextPath);
 
         // Sweep stale {fileBase}.{ClassName}.cs files where ClassName no longer exists in model.
-        // Keep set: every class name in model + model.Name itself (context file).
+        // Keep set: every class + complex-type name in model + model.Name itself (context file).
         var keepNames = new HashSet<string>(model.Classes.Select(c => c.Name), StringComparer.Ordinal) { model.Name };
+        foreach (var ct in model.ComplexTypes) keepNames.Add(ct.Name);
         var prefix = fileBase + ".";
         var deleted = new List<string>();
         foreach (var existing in Directory.EnumerateFiles(outDir, $"{fileBase}.*.cs"))

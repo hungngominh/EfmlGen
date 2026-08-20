@@ -203,11 +203,11 @@ public static class StoredProcedureReader
 
         var schemaSet = new HashSet<string>(schemas, StringComparer.OrdinalIgnoreCase);
 
-        var routines = new List<(string Schema, string Name, string SpecificName)>();
+        var routines = new List<(string Schema, string Name, string SpecificName, string RoutineType, string? ReturnDataType)>();
         using (var cmd = conn.CreateCommand())
         {
             cmd.CommandText = @"
-                SELECT specific_schema, routine_name, specific_name
+                SELECT specific_schema, routine_name, specific_name, routine_type, data_type
                 FROM information_schema.routines
                 WHERE routine_type IN ('FUNCTION', 'PROCEDURE')
                 ORDER BY specific_schema, routine_name";
@@ -216,11 +216,12 @@ public static class StoredProcedureReader
             {
                 var schema = rdr.GetString(0);
                 if (schemaSet.Count > 0 && !schemaSet.Contains(schema)) continue;
-                routines.Add((schema, rdr.GetString(1), rdr.GetString(2)));
+                routines.Add((schema, rdr.GetString(1), rdr.GetString(2), rdr.GetString(3),
+                    rdr.IsDBNull(4) ? null : rdr.GetString(4)));
             }
         }
 
-        foreach (var (schema, name, specificName) in routines)
+        foreach (var (schema, name, specificName, routineType, returnDataType) in routines)
         {
             var sp = new EfStoredProcedure
             {
@@ -273,6 +274,22 @@ public static class StoredProcedureReader
                     else if (IsNumeric(t.EfType)) { ep.Precision = precision; ep.Scale = scale; }
 
                     sp.Parameters.Add(ep);
+                }
+            }
+
+            // A plain scalar-returning function (`RETURNS int`, etc.) has no OUT/TABLE
+            // rows in information_schema.parameters, so resultProps is empty even though
+            // it does return a value. Npgsql calls it via `SELECT * FROM schema.name(...)`,
+            // and Postgres names that lone result column after the function itself.
+            if (resultProps.Count == 0 && routineType == "FUNCTION" && !string.IsNullOrEmpty(returnDataType))
+            {
+                if (returnDataType == "record")
+                {
+                    warnings.Add($"Could not determine result columns for {schema}.{name} (function returns a composite/SETOF type without OUT or TABLE parameters — unsupported).");
+                }
+                else if (returnDataType != "void" && returnDataType != "trigger")
+                {
+                    resultProps.Add(MakeResultProperty(name, returnDataType, isNullable: true, forceDateTime, isSqlServer: false));
                 }
             }
 

@@ -2,6 +2,21 @@
 
 Toàn bộ thay đổi đáng chú ý của EfmlGen được liệt kê tại đây. Format theo [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning theo [SemVer](https://semver.org/).
 
+## [0.8.5] — 2026-08-20
+
+### Added — WPF: hỗ trợ Stored Procedures đầy đủ (ngang bằng CLI)
+- Tab **Scaffold** giờ có 2 tab con "Tables" và "Stored procedures" (search, select all, clear, checkbox list) — trước đây WPF hoàn toàn không đọc/generate stored procedures dù CLI đã hỗ trợ.
+- Nút "Load Schema Tables" đổi thành "Load Schema Tables + SPs": đọc luôn danh sách SP từ DB và tự pre-select những SP đã có trong `.efml` hiện có.
+- `GenWorker.Scaffold` nhận thêm `spFilter` — `null` = đọc toàn bộ SP (giữ hành vi mặc định như CLI), mảng rỗng `[]` = người dùng chủ động bỏ chọn hết → không lấy SP nào (phân biệt rõ "chưa load SP" và "đã load nhưng bỏ chọn hết").
+- `GenWorker.GenCode` giờ sinh đúng các class DTO kết quả stored procedure (`EfComplexType`) — trước đây bị bỏ sót âm thầm trong luồng WPF, gây lỗi biên dịch code sinh ra khi model có SP.
+
+### Fixed — Postgres: function trả scalar bị mất kiểu trả về
+- Function Postgres dạng `RETURNS int` (không có tham số `OUT`/`TABLE`) trước đây bị coi là không có kết quả trả về (Npgsql gọi qua `SELECT * FROM schema.fn(...)`, cột kết quả được đặt tên theo chính function đó). Giờ cột kết quả scalar này được nhận diện và map đúng.
+- Function trả kiểu composite/`record` không có `OUT`/`TABLE` params giờ phát cảnh báo rõ ràng thay vì âm thầm mất dữ liệu.
+
+### Build
+- Bump CLI + WPF + installer + VSIX manifest sang `0.8.5`.
+
 ## [0.8.4] — 2026-07-27
 
 ### Fixed — Postgres: cột Id với sequence default thủ công không tự tăng
